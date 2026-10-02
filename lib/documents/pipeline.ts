@@ -63,7 +63,8 @@ export async function processDocument(documentId: string, buffer: Buffer, type: 
     ]);
     logger.info({ operation: "process", documentId, status: "ready", durationMs: Date.now() - started });
   } catch (error) {
+    const errorMsg = error instanceof Error ? `${error.message}` : String(error);
     logger.error({ operation: "process", documentId, status: "failed", errorCode: "PROCESSING_ERROR", error });
-    await setStatus("failed", "We could not process this file. Check that it is a valid PDF or DOCX and try again.").catch(() => undefined);
+    await setStatus("failed", `Could not process document: ${errorMsg}`).catch(() => undefined);
   }
 }
