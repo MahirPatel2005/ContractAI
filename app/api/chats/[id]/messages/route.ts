@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { z } from "zod";
 import { answerQuestion, finalizeAnswer, parseModelAnswer, INSUFFICIENT_PREFIX, type ModelAnswer } from "@/lib/ai/answer";
-import { generateContent, textOf } from "@/lib/ai/gemini";
+import { generateContent, textOf, type GeminiContent } from "@/lib/ai/gemini";
 import { ANSWER_SYSTEM_PROMPT, buildAnswerPrompt, buildEvidence } from "@/lib/ai/prompts";
 import { synthesizeLegalAnswer } from "@/lib/ai/synthesis";
 import { registerChatAbort, unregisterChatAbort } from "@/lib/chat/cancellation";
@@ -39,7 +39,13 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 
   const chat = await prisma.chat.findUnique({
     where: { id: chatId },
-    include: { document: true },
+    include: {
+      document: true,
+      messages: {
+        orderBy: { createdAt: "asc" },
+        take: 12,
+      },
+    },
   });
 
   if (!chat) return fail("NOT_FOUND", "Chat not found.", 404);
@@ -117,9 +123,24 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 
         if (hasGeminiKey) {
           try {
+            // Build multi-turn conversational history for real to-and-fro dialogue
+            const conversationContents: GeminiContent[] = [];
+            for (const prev of chat.messages) {
+              if (prev.content && prev.id !== userMessage.id && prev.id !== assistantMessage.id) {
+                conversationContents.push({
+                  role: prev.role === "user" ? "user" : "model",
+                  parts: [{ text: prev.content }],
+                });
+              }
+            }
+            conversationContents.push({
+              role: "user",
+              parts: [{ text: buildAnswerPrompt(question, docs, buildEvidence(docs, chunks)) }],
+            });
+
             const reply = await generateContent({
               system: ANSWER_SYSTEM_PROMPT,
-              contents: [{ role: "user", parts: [{ text: buildAnswerPrompt(question, docs, buildEvidence(docs, chunks)) }] }],
+              contents: conversationContents,
               json: true,
             });
             parsed = parseModelAnswer(textOf(reply));
