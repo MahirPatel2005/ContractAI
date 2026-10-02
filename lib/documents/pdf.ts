@@ -39,6 +39,14 @@ interface PdfJs {
  * verified character range can later be turned into highlight rectangles.
  */
 export async function extractPdfPages(buffer: Buffer): Promise<ExtractedPage[]> {
+  try {
+    // @ts-expect-error - pdf.worker.mjs does not export type definitions but is needed for Node/Serverless worker setup
+    const worker = await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
+    (globalThis as unknown as { pdfjsWorker?: unknown }).pdfjsWorker = worker;
+  } catch {
+    // Continue with default fake worker fallback
+  }
+
   const pdfjs = (await import("pdfjs-dist/legacy/build/pdf.mjs")) as unknown as PdfJs;
   const doc = await pdfjs.getDocument({
     data: new Uint8Array(buffer),
