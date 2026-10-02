@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: contract_ai_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: contract_ai
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: contract_ai_app
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgrespassword@postgres:5432/contract_ai?schema=public"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      GEMINI_BASE_URL: "https://generativelanguage.googleapis.com/v1beta"
+      GEMINI_MODEL: "gemini-2.0-flash"
+    ports:
+      - "3000:3000"
+    volumes:
+      - contract_storage:/app/.storage/documents
+
+volumes:
+  postgres_data:
+  contract_storage:
