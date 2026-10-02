@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ComparisonReport, MatchedSectionComparison, Significance, ChangeStatus } from "@/lib/comparison/compare";
+import { diffWords } from "@/lib/comparison/diff";
 import type { DocumentRow } from "./DocumentLibrary";
 import type { VerifiedCitation } from "@/lib/citations/verifier";
 import {
@@ -120,8 +121,8 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
     setActiveSectionId(secId);
     const leftEl = document.getElementById(`left-${secId}`);
     const rightEl = document.getElementById(`right-${secId}`);
-    if (leftEl) leftEl.scrollIntoView({ behavior: "smooth", block: "center" });
-    if (rightEl) rightEl.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (leftEl) leftEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (rightEl) rightEl.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   // Handle Comparison Chat Questions
@@ -515,6 +516,22 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
                 </div>
               </div>
 
+              {/* Diff Markup Legend Bar */}
+              <div className="grid grid-cols-2 bg-zinc-100/70 border-b border-zinc-200 text-[11px] font-sans divide-x divide-zinc-200 px-4 py-1.5 text-zinc-600">
+                <div className="flex items-center gap-2">
+                  <span className="text-zinc-500 font-semibold text-[10px] uppercase tracking-wider">Markup:</span>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-900 border border-red-200">
+                    <span className="line-through decoration-red-600 font-bold">Red strikethrough</span> = Deleted / Replaced text
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 pl-4">
+                  <span className="text-zinc-500 font-semibold text-[10px] uppercase tracking-wider">Markup:</span>
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-100 text-emerald-900 border border-emerald-200">
+                    <span className="underline decoration-2 decoration-emerald-600 font-bold">Green underline</span> = Added / Revised text
+                  </span>
+                </div>
+              </div>
+
               {/* Synchronized Side-by-Side Scrolling Panes */}
               <div className="flex-1 grid grid-cols-2 divide-x divide-zinc-200 overflow-hidden">
                 {/* Left Pane (Version 1) */}
@@ -576,6 +593,23 @@ function SideBySideClauseCard({
   const isAdded = side === "right" && sec.status === "added";
   const isModified = sec.status === "modified";
 
+  // Compute precise word-level diff between original and revision
+  const diff = useMemo(() => {
+    if (!isModified || !sec.leftText || !sec.rightText) return null;
+    return diffWords(sec.leftText, sec.rightText);
+  }, [isModified, sec.leftText, sec.rightText]);
+
+  const deletedTokens = useMemo(() => {
+    return diff?.leftTokens.filter((t) => t.op === "deleted") || [];
+  }, [diff]);
+
+  const insertedTokens = useMemo(() => {
+    return diff?.rightTokens.filter((t) => t.op === "inserted") || [];
+  }, [diff]);
+
+  const deletedSnippet = deletedTokens.map((t) => t.text).join(" ").trim();
+  const insertedSnippet = insertedTokens.map((t) => t.text).join(" ").trim();
+
   return (
     <div
       id={`${side}-${sec.id}`}
@@ -591,7 +625,6 @@ function SideBySideClauseCard({
         <span className="font-bold text-zinc-900 text-xs">{sec.title}</span>
 
         <div className="flex items-center gap-1">
-          {/* Accessible Diff Indicators: Not by color alone */}
           {isDeleted && (
             <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-900 border border-red-300">
               [-] DELETED
@@ -616,41 +649,139 @@ function SideBySideClauseCard({
         </div>
       </div>
 
-      {/* Impact Assessment Banner (on modified clauses) */}
-      {isModified && side === "right" && (
-        <div className="font-sans mb-3 rounded-md bg-amber-50/70 border border-amber-200 p-2 text-[11px] text-amber-950 space-y-1">
-          <div className="flex items-center justify-between font-bold">
-            <span className="flex items-center gap-1 text-amber-900">
-              <ScaleIcon className="w-3.5 h-3.5 text-amber-700" />
-              <span>Favors: {sec.favorsParty}</span>
+      {/* Changes Banner on Modified Clauses */}
+      {isModified && (
+        <div className="font-sans mb-3 rounded-lg border border-amber-200 bg-amber-50/70 p-2.5 text-xs text-amber-950 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-amber-900 flex items-center gap-1.5 text-[11px]">
+              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span>{side === "left" ? "Original Version (Prior Language)" : "Revised Version (Updated Language)"}</span>
             </span>
-            <span className="text-[10px] text-zinc-500 font-normal">Risk: {sec.riskLevel}</span>
+            {(deletedSnippet || insertedSnippet) && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const target = document.getElementById(`diff-target-${side}-${sec.id}`);
+                  if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 transition cursor-pointer shadow-2xs"
+              >
+                <span>Jump to change</span>
+                <span className="text-[10px]">↓</span>
+              </button>
+            )}
           </div>
-          <p className="text-zinc-700">{sec.explanation}</p>
-          {sec.detectedChanges.length > 0 && (
-            <div className="text-[10px] font-mono text-indigo-900 pt-0.5">
-              {sec.detectedChanges.join(" • ")}
+
+          {/* Quick inline preview of what was removed or added */}
+          {(deletedSnippet || insertedSnippet) && (
+            <div className="text-[11px] font-mono bg-white/90 p-2 rounded border border-amber-200/80 text-zinc-800">
+              <span className="text-zinc-500 font-sans text-[10px] block mb-1 font-semibold uppercase">
+                {side === "left" ? "Removed / Replaced Language:" : "Added / Replacement Language:"}
+              </span>
+              {side === "left" ? (
+                <span className="line-through decoration-red-600 bg-red-100 text-red-950 font-medium px-1.5 py-0.5 rounded inline-block">
+                  {deletedSnippet || "(Text removed in revision)"}
+                </span>
+              ) : (
+                <span className="underline decoration-2 decoration-emerald-600 bg-emerald-100 text-emerald-950 font-medium px-1.5 py-0.5 rounded inline-block">
+                  {insertedSnippet || "(Text added in revision)"}
+                </span>
+              )}
             </div>
           )}
-          <span className="text-[9px] text-zinc-500 italic block pt-0.5">
-            Legal Notice: {sec.disclaimer}
-          </span>
+
+          {/* Legal Risk & Impact Assessment (Shown on Right Pane) */}
+          {side === "right" && (
+            <div className="pt-1.5 border-t border-amber-200/60 space-y-1">
+              <div className="flex items-center justify-between font-bold">
+                <span className="flex items-center gap-1 text-amber-900">
+                  <ScaleIcon className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Favors: {sec.favorsParty}</span>
+                </span>
+                <span className="text-[10px] text-zinc-500 font-normal">Risk: {sec.riskLevel}</span>
+              </div>
+              <p className="text-zinc-700 font-sans text-[11px]">{sec.explanation}</p>
+              {sec.detectedChanges.length > 0 && (
+                <div className="text-[10px] font-mono text-indigo-900 pt-0.5">
+                  {sec.detectedChanges.join(" • ")}
+                </div>
+              )}
+              <span className="text-[9px] text-zinc-500 italic block pt-0.5">
+                Legal Notice: {sec.disclaimer}
+              </span>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Clause Text Content with Accessible Styling */}
+      {/* Clause Text Content with Word-Level Diff Highlighting */}
       {text ? (
-        <div
-          className={`whitespace-pre-wrap ${
-            isDeleted
-              ? "line-through decoration-red-500/70 text-zinc-500 bg-red-50/30 p-2 rounded"
-              : isAdded
-              ? "underline decoration-emerald-500/70 text-zinc-900 bg-emerald-50/30 p-2 rounded"
-              : "text-zinc-800"
-          }`}
-        >
-          {text}
-        </div>
+        isModified && diff ? (
+          <div className="whitespace-pre-wrap leading-relaxed">
+            {side === "left"
+              ? (() => {
+                  let firstTargetMarked = false;
+                  return diff.leftTokens.map((token, idx) => {
+                    if (token.op === "deleted") {
+                      const isFirst = !firstTargetMarked;
+                      if (isFirst) firstTargetMarked = true;
+                      return (
+                        <mark
+                          key={idx}
+                          id={isFirst ? `diff-target-left-${sec.id}` : undefined}
+                          className="bg-red-100 text-red-950 line-through decoration-red-600 decoration-2 font-medium px-1 py-0.5 rounded border border-red-300 inline scroll-mt-24 shadow-2xs"
+                          title="Original text removed or changed in revision"
+                        >
+                          {token.text}
+                        </mark>
+                      );
+                    }
+                    return (
+                      <span key={idx} className="text-zinc-800">
+                        {token.text}
+                      </span>
+                    );
+                  });
+                })()
+              : (() => {
+                  let firstTargetMarked = false;
+                  return diff.rightTokens.map((token, idx) => {
+                    if (token.op === "inserted") {
+                      const isFirst = !firstTargetMarked;
+                      if (isFirst) firstTargetMarked = true;
+                      return (
+                        <mark
+                          key={idx}
+                          id={isFirst ? `diff-target-right-${sec.id}` : undefined}
+                          className="bg-emerald-100 text-emerald-950 underline decoration-emerald-600 decoration-2 font-medium px-1 py-0.5 rounded border border-emerald-300 inline scroll-mt-24 shadow-2xs"
+                          title="New text added or modified in revision"
+                        >
+                          {token.text}
+                        </mark>
+                      );
+                    }
+                    return (
+                      <span key={idx} className="text-zinc-800">
+                        {token.text}
+                      </span>
+                    );
+                  });
+                })()}
+          </div>
+        ) : (
+          <div
+            className={`whitespace-pre-wrap leading-relaxed ${
+              isDeleted
+                ? "line-through decoration-red-500/70 text-zinc-600 bg-red-50/40 p-2.5 rounded border border-red-200"
+                : isAdded
+                ? "underline decoration-emerald-500/70 text-zinc-900 bg-emerald-50/40 p-2.5 rounded border border-emerald-200"
+                : "text-zinc-800"
+            }`}
+          >
+            {text}
+          </div>
+        )
       ) : (
         <div className="italic text-zinc-400 py-4 text-center">
           {side === "left"

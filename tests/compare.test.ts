@@ -44,4 +44,27 @@ describe("compareContracts", () => {
     expect(report.summary.unchangedCount).toBe(1);
     expect(report.summary.modifiedCount).toBe(0);
   });
+
+  it("computes word-level diffs highlighting only the exact changed words", async () => {
+    const { diffWords } = await import("@/lib/comparison/diff");
+    const left = "giving CONSULTANT thirty-day (30-day) written notice thereof.";
+    const right = "giving CONSULTANT sixty-day (60-day) written notice thereof.";
+
+    const result = diffWords(left, right);
+    expect(result.hasDifferences).toBe(true);
+
+    // Left should have unchanged prefix, deleted target, unchanged suffix
+    const deleted = result.leftTokens.find((t) => t.op === "deleted");
+    expect(deleted?.text).toContain("thirty-day (30-day)");
+    const leftSame = result.leftTokens.filter((t) => t.op === "same").map((t) => t.text).join("");
+    expect(leftSame).toContain("giving CONSULTANT");
+    expect(leftSame).toContain("written notice thereof.");
+
+    // Right should have unchanged prefix, inserted target, unchanged suffix
+    const inserted = result.rightTokens.find((t) => t.op === "inserted");
+    expect(inserted?.text).toContain("sixty-day (60-day)");
+    const rightSame = result.rightTokens.filter((t) => t.op === "same").map((t) => t.text).join("");
+    expect(rightSame).toContain("giving CONSULTANT");
+    expect(rightSame).toContain("written notice thereof.");
+  });
 });
