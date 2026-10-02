@@ -2,6 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { PageTextItem } from "@/lib/documents/pdf";
+import {
+  AlertCircleIcon,
+  DownloadIcon,
+  CheckIcon,
+  MinusIcon,
+  PlusIcon,
+  XIcon,
+} from "./Icons";
 
 export interface ActiveCitation {
   id?: string;
@@ -121,7 +129,7 @@ export function DocumentViewer({ documentId, activeCitation, onClearCitation }: 
   if (error || !content) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[480px] bg-red-50/50 border border-red-200 rounded-xl p-8 text-center">
-        <span className="text-3xl mb-2">⚠️</span>
+        <AlertCircleIcon className="w-8 h-8 text-red-600 mb-2" />
         <h4 className="text-sm font-bold text-red-900">Could not load document preview</h4>
         <p className="mt-1 text-xs text-red-700 max-w-sm">{error || "Document not found or still processing."}</p>
       </div>
@@ -131,37 +139,37 @@ export function DocumentViewer({ documentId, activeCitation, onClearCitation }: 
   const totalPages = content.pages.length;
 
   return (
-    <div className="flex flex-col h-full bg-zinc-100/80 border border-zinc-200 rounded-xl overflow-hidden shadow-xs">
+    <div className="flex flex-col h-full bg-slate-100/80 border border-slate-200 rounded-xl overflow-hidden shadow-xs">
       {/* Viewer Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-white border-b border-zinc-200 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-white border-b border-slate-200 text-xs">
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-zinc-900 truncate max-w-[200px]" title={content.document.name}>
+          <span className="font-semibold text-slate-900 truncate max-w-[200px]" title={content.document.name}>
             {content.document.name}
           </span>
-          <span className="px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-600 uppercase font-mono text-[10px]">
+          <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 uppercase font-mono text-[10px]">
             {content.document.type}
           </span>
         </div>
 
         {/* Page Nav */}
-        <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-200 rounded-lg px-2 py-1">
+        <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1">
           <button
             type="button"
             disabled={currentPage <= 1}
             onClick={() => jumpToPage(currentPage - 1)}
-            className="p-1 rounded text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/60 disabled:opacity-30 cursor-pointer"
+            className="p-1 rounded text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 disabled:opacity-30 cursor-pointer"
             title="Previous Page"
           >
             ◀
           </button>
-          <span className="text-zinc-700 font-medium px-1">
+          <span className="text-slate-700 font-medium px-1">
             Page {currentPage} of {totalPages}
           </span>
           <button
             type="button"
             disabled={currentPage >= totalPages}
             onClick={() => jumpToPage(currentPage + 1)}
-            className="p-1 rounded text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/60 disabled:opacity-30 cursor-pointer"
+            className="p-1 rounded text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 disabled:opacity-30 cursor-pointer"
             title="Next Page"
           >
             ▶
@@ -177,36 +185,37 @@ export function DocumentViewer({ documentId, activeCitation, onClearCitation }: 
               placeholder="Find in doc…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-28 sm:w-36 rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 placeholder-zinc-400 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-indigo-500"
+              className="w-28 sm:w-36 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-hidden focus:ring-1 focus:ring-slate-800"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute right-1.5 top-1 text-zinc-400 hover:text-zinc-600 text-xs"
+                className="absolute right-1.5 top-1.5 text-slate-400 hover:text-slate-600 text-xs p-0.5 rounded cursor-pointer"
+                title="Clear search"
               >
-                ×
+                <XIcon className="w-3 h-3" />
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-1 bg-zinc-50 border border-zinc-200 rounded-lg px-1.5 py-1">
+          <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-lg px-1.5 py-1">
             <button
               type="button"
               onClick={() => setZoom((z) => Math.max(70, z - 10))}
-              className="px-1 text-zinc-600 hover:text-zinc-900 font-bold cursor-pointer"
+              className="p-0.5 text-slate-600 hover:text-slate-900 font-bold cursor-pointer"
               title="Zoom out"
             >
-              −
+              <MinusIcon className="w-3 h-3" />
             </button>
-            <span className="text-[11px] font-mono text-zinc-600 w-8 text-center">{zoom}%</span>
+            <span className="text-[11px] font-mono text-slate-600 w-8 text-center">{zoom}%</span>
             <button
               type="button"
               onClick={() => setZoom((z) => Math.min(150, z + 10))}
-              className="px-1 text-zinc-600 hover:text-zinc-900 font-bold cursor-pointer"
+              className="p-0.5 text-slate-600 hover:text-slate-900 font-bold cursor-pointer"
               title="Zoom in"
             >
-              +
+              <PlusIcon className="w-3 h-3" />
             </button>
           </div>
 
@@ -215,10 +224,10 @@ export function DocumentViewer({ documentId, activeCitation, onClearCitation }: 
             href={`/api/documents/${documentId}/file`}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-1.5 rounded-lg border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-900 shadow-2xs"
+            className="p-1.5 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs inline-flex items-center"
             title="Download Original File"
           >
-            📥
+            <DownloadIcon className="w-3.5 h-3.5" />
           </a>
         </div>
       </div>
@@ -227,11 +236,12 @@ export function DocumentViewer({ documentId, activeCitation, onClearCitation }: 
       {activeCitation && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between text-xs text-amber-950 animate-in fade-in">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="font-bold text-emerald-800 flex items-center gap-1 shrink-0">
-              ✓ Verified Citation
+            <span className="font-semibold text-emerald-800 flex items-center gap-1 shrink-0">
+              <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Verified Citation</span>
             </span>
-            <span className="text-amber-800">• Page {activeCitation.pageNumber}</span>
-            <span className="truncate italic text-zinc-700 max-w-sm hidden sm:inline" title={activeCitation.quote}>
+            <span className="text-amber-800 font-medium">• Page {activeCitation.pageNumber}</span>
+            <span className="truncate italic text-slate-700 max-w-sm hidden sm:inline" title={activeCitation.quote}>
               &quot;{activeCitation.quote}&quot;
             </span>
           </div>
@@ -239,10 +249,10 @@ export function DocumentViewer({ documentId, activeCitation, onClearCitation }: 
             <button
               type="button"
               onClick={onClearCitation}
-              className="text-amber-800 hover:text-amber-950 font-bold text-sm px-1.5 cursor-pointer"
+              className="text-amber-800 hover:text-amber-950 font-bold p-1 cursor-pointer rounded hover:bg-amber-100"
               title="Dismiss highlight"
             >
-              ×
+              <XIcon className="w-3.5 h-3.5" />
             </button>
           )}
         </div>

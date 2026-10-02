@@ -4,6 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import type { ComparisonReport, MatchedSectionComparison, Significance, ChangeStatus } from "@/lib/comparison/compare";
 import type { DocumentRow } from "./DocumentLibrary";
 import type { VerifiedCitation } from "@/lib/citations/verifier";
+import {
+  ScaleIcon,
+  MessageSquareIcon,
+  AlertCircleIcon,
+  CheckIcon,
+  FileTextIcon,
+  ArrowRightIcon,
+} from "./Icons";
 
 interface ContractComparisonProps {
   documents: DocumentRow[];
@@ -176,11 +184,12 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
       <div className="rounded-xl border border-zinc-200 bg-white p-5 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div>
-            <h2 className="text-xl font-bold text-zinc-950 flex items-center gap-2">
-              <span>⚖️ Side-by-Side Contract Comparison & Risk Analysis</span>
+            <h2 className="text-xl font-bold text-slate-950 flex items-center gap-2">
+              <ScaleIcon className="w-5 h-5 text-slate-800" />
+              <span>Side-by-Side Contract Comparison & Risk Analysis</span>
             </h2>
-            <p className="mt-0.5 text-xs text-zinc-600">
-              Clause-level matching with synchronized scrolling, accessible diffs, and interactive comparison chat.
+            <p className="mt-0.5 text-xs text-slate-600">
+              Clause-level matching with synchronized scrolling, accessible diffs, and interactive comparison analysis.
             </p>
           </div>
 
@@ -188,9 +197,10 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
             <button
               type="button"
               onClick={() => setShowChat(!showChat)}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-900 hover:bg-indigo-100/70 transition cursor-pointer self-start sm:self-center"
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 hover:bg-slate-100 transition cursor-pointer self-start sm:self-center flex items-center gap-1.5"
             >
-              {showChat ? "Hide Comparison Chat 💬" : "Show Comparison Chat 💬"}
+              <MessageSquareIcon className="w-3.5 h-3.5 text-slate-600" />
+              <span>{showChat ? "Hide Comparison Inquiry" : "Show Comparison Inquiry"}</span>
             </button>
           )}
         </div>
@@ -243,8 +253,9 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
         </div>
 
         {error && (
-          <div className="rounded-lg bg-red-50 p-2.5 text-xs text-red-700 border border-red-200">
-            ⚠️ {error}
+          <div className="rounded-lg bg-red-50 p-2.5 text-xs text-red-700 border border-red-200 flex items-center gap-1.5">
+            <AlertCircleIcon className="w-4 h-4 text-red-600 shrink-0" />
+            <span>{error}</span>
           </div>
         )}
       </div>
@@ -281,23 +292,24 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
 
           {/* Optional Comparison Chat Panel */}
           {showChat && (
-            <div className="rounded-xl border border-indigo-200 bg-white shadow-xs overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2.5 bg-indigo-950 text-white text-xs">
-                <span className="font-bold flex items-center gap-1.5">
-                  <span>💬 Comparison Assistant</span>
-                  <span className="text-[10px] bg-indigo-800 text-indigo-200 px-1.5 py-0.5 rounded font-normal">
+            <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 text-white text-xs">
+                <span className="font-semibold flex items-center gap-2">
+                  <MessageSquareIcon className="w-3.5 h-3.5 text-slate-300" />
+                  <span>Comparison Assistant</span>
+                  <span className="text-[10px] bg-slate-800 text-slate-300 px-1.5 py-0.5 rounded font-mono font-medium">
                     Dual-Contract Quote Verification
                   </span>
                 </span>
-                <span className="text-[10px] text-indigo-300">
+                <span className="text-[10px] text-slate-400">
                   Ask about differences or risks between these versions
                 </span>
               </div>
 
               {/* Sample Prompts */}
               {chatMessages.length === 0 && (
-                <div className="p-3 bg-indigo-50/40 border-b border-indigo-100 flex flex-wrap gap-2 text-xs">
-                  <span className="text-[11px] text-zinc-500 font-medium self-center">Try asking:</span>
+                <div className="p-3 bg-slate-50 border-b border-slate-200 flex flex-wrap gap-2 text-xs">
+                  <span className="text-[11px] text-slate-500 font-medium self-center">Try asking:</span>
                   {[
                     "What are the biggest financial and liability differences?",
                     "How does this revised contract affect me?",
@@ -307,7 +319,7 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
                       key={prompt}
                       type="button"
                       onClick={() => handleSendComparisonChat(prompt)}
-                      className="px-2.5 py-1 rounded-full bg-white border border-indigo-200 text-indigo-950 hover:bg-indigo-100/70 transition text-[11px] cursor-pointer"
+                      className="px-2.5 py-1 rounded-full bg-white border border-slate-300 text-slate-800 hover:bg-slate-100 transition text-[11px] cursor-pointer"
                     >
                       &quot;{prompt}&quot;
                     </button>
@@ -323,8 +335,8 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
                       <div
                         className={`max-w-[85%] rounded-xl px-3.5 py-2.5 leading-relaxed ${
                           msg.role === "user"
-                            ? "bg-indigo-950 text-white"
-                            : "bg-zinc-50 border border-zinc-200 text-zinc-900"
+                            ? "bg-slate-900 text-white"
+                            : "bg-slate-50 border border-slate-200 text-slate-900"
                         }`}
                       >
                         <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -333,7 +345,7 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
                       {/* Verified Citations from Both Documents */}
                       {msg.citations && msg.citations.length > 0 && (
                         <div className="mt-1.5 max-w-[85%] space-y-1">
-                          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
+                          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
                             Verified Source Evidence ({msg.citations.length})
                           </span>
                           {msg.citations.map((c, i) => (
@@ -348,10 +360,11 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
                                 if (matchingSec) scrollToSection(matchingSec.id);
                               }}
                             >
-                              <span className="font-bold text-emerald-800">
-                                ✓ Verified • {c.documentName} • Page {c.pageStart}
+                              <span className="font-semibold text-emerald-800 inline-flex items-center gap-1">
+                                <CheckIcon className="w-3 h-3 text-emerald-600" />
+                                <span>Verified Authority • {c.documentName} • Page {c.pageStart}</span>
                               </span>
-                              <p className="italic text-zinc-700 truncate">&quot;{c.quote}&quot;</p>
+                              <p className="italic text-slate-700 truncate mt-0.5">&quot;{c.quote}&quot;</p>
                             </div>
                           ))}
                         </div>
@@ -360,8 +373,8 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
                   ))}
 
                   {chatLoading && (
-                    <div className="text-xs text-indigo-700 flex items-center gap-1.5">
-                      <span className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse"></span>
+                    <div className="text-xs text-slate-700 flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-slate-800 animate-pulse"></span>
                       <span>Comparing contract provisions and verifying quotes…</span>
                     </div>
                   )}
@@ -374,7 +387,7 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
                   e.preventDefault();
                   handleSendComparisonChat();
                 }}
-                className="p-2.5 border-t border-zinc-200 bg-zinc-50/60 flex items-center gap-2"
+                className="p-2.5 border-t border-slate-200 bg-slate-50/80 flex items-center gap-2"
               >
                 <input
                   type="text"
@@ -382,20 +395,21 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
                   value={chatQuestion}
                   onChange={(e) => setChatQuestion(e.target.value)}
                   disabled={chatLoading}
-                  className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs text-zinc-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-600"
+                  className="flex-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-slate-800"
                 />
                 <button
                   type="submit"
                   disabled={chatLoading || !chatQuestion.trim()}
-                  className="rounded-md bg-indigo-900 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-800 disabled:opacity-40 transition cursor-pointer"
+                  className="rounded-md bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 disabled:opacity-40 transition cursor-pointer"
                 >
                   Ask
                 </button>
               </form>
 
               {chatError && (
-                <div className="px-3 py-1.5 bg-red-50 text-[11px] text-red-700 border-t border-red-200">
-                  ⚠️ {chatError}
+                <div className="px-3 py-1.5 bg-red-50 text-[11px] text-red-700 border-t border-red-200 flex items-center gap-1.5">
+                  <AlertCircleIcon className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                  <span>{chatError}</span>
                 </div>
               )}
             </div>
@@ -461,10 +475,10 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
                     >
                       <div className="flex items-center justify-between text-[10px]">
                         <span className="font-mono uppercase font-bold text-zinc-500">
-                          {sec.status === "modified" && "⚠️ MODIFIED"}
-                          {sec.status === "added" && "➕ ADDED"}
-                          {sec.status === "deleted" && "➖ DELETED"}
-                          {sec.status === "unchanged" && "✓ UNCHANGED"}
+                          {sec.status === "modified" && "MODIFIED"}
+                          {sec.status === "added" && "+ ADDED"}
+                          {sec.status === "deleted" && "- DELETED"}
+                          {sec.status === "unchanged" && "UNCHANGED"}
                         </span>
                         {sec.significance === "high" && (
                           <span className="text-red-700 bg-red-50 px-1 rounded font-bold">HIGH</span>
@@ -482,13 +496,19 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
               {/* Panes Header Bar */}
               <div className="grid grid-cols-2 bg-zinc-50 border-b border-zinc-200 text-xs font-bold divide-x divide-zinc-200">
                 <div className="px-4 py-2.5 flex items-center justify-between text-zinc-800">
-                  <span className="truncate max-w-[240px]">📄 {report.leftDocumentName}</span>
+                  <span className="truncate max-w-[240px] flex items-center gap-1.5">
+                    <FileTextIcon className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                    <span>{report.leftDocumentName}</span>
+                  </span>
                   <span className="text-[10px] text-zinc-500 font-mono uppercase bg-zinc-200/60 px-1.5 py-0.5 rounded">
                     Version 1 (Original)
                   </span>
                 </div>
                 <div className="px-4 py-2.5 flex items-center justify-between text-indigo-950 bg-indigo-50/40">
-                  <span className="truncate max-w-[240px]">📄 {report.rightDocumentName}</span>
+                  <span className="truncate max-w-[240px] flex items-center gap-1.5">
+                    <FileTextIcon className="w-3.5 h-3.5 text-indigo-700 shrink-0" />
+                    <span>{report.rightDocumentName}</span>
+                  </span>
                   <span className="text-[10px] text-indigo-800 font-mono uppercase bg-indigo-100 px-1.5 py-0.5 rounded">
                     Version 2 (Revised)
                   </span>
@@ -600,7 +620,10 @@ function SideBySideClauseCard({
       {isModified && side === "right" && (
         <div className="font-sans mb-3 rounded-md bg-amber-50/70 border border-amber-200 p-2 text-[11px] text-amber-950 space-y-1">
           <div className="flex items-center justify-between font-bold">
-            <span>⚖️ Favors: {sec.favorsParty}</span>
+            <span className="flex items-center gap-1 text-amber-900">
+              <ScaleIcon className="w-3.5 h-3.5 text-amber-700" />
+              <span>Favors: {sec.favorsParty}</span>
+            </span>
             <span className="text-[10px] text-zinc-500 font-normal">Risk: {sec.riskLevel}</span>
           </div>
           <p className="text-zinc-700">{sec.explanation}</p>
@@ -609,8 +632,8 @@ function SideBySideClauseCard({
               {sec.detectedChanges.join(" • ")}
             </div>
           )}
-          <span className="text-[9px] text-zinc-400 italic block pt-0.5">
-            ℹ️ {sec.disclaimer}
+          <span className="text-[9px] text-zinc-500 italic block pt-0.5">
+            Legal Notice: {sec.disclaimer}
           </span>
         </div>
       )}

@@ -24,7 +24,7 @@ function renderInline(text: string): React.ReactNode[] {
 
     if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
       return (
-        <strong key={idx} className="font-semibold text-zinc-950">
+        <strong key={idx} className="font-semibold text-slate-950">
           {part.slice(2, -2)}
         </strong>
       );
@@ -32,7 +32,7 @@ function renderInline(text: string): React.ReactNode[] {
 
     if (part.startsWith("*") && part.endsWith("*") && part.length >= 2) {
       return (
-        <em key={idx} className="italic text-zinc-800">
+        <em key={idx} className="italic text-slate-800">
           {part.slice(1, -1)}
         </em>
       );
@@ -42,7 +42,7 @@ function renderInline(text: string): React.ReactNode[] {
       return (
         <code
           key={idx}
-          className="px-1.5 py-0.5 rounded bg-zinc-100 border border-zinc-200 text-xs font-mono text-indigo-900 font-medium"
+          className="px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs font-mono text-slate-800 font-medium"
         >
           {part.slice(1, -1)}
         </code>
@@ -53,7 +53,7 @@ function renderInline(text: string): React.ReactNode[] {
       return (
         <span
           key={idx}
-          className="font-medium text-indigo-950 bg-indigo-50/80 px-1.5 py-0.5 rounded border border-indigo-200/70 inline-block my-0.5"
+          className="font-medium text-slate-950 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/90 inline-block my-0.5"
         >
           &ldquo;{part.slice(1, -1)}&rdquo;
         </span>
@@ -65,14 +65,14 @@ function renderInline(text: string): React.ReactNode[] {
 }
 
 /**
- * Rich ChatGPT-style Markdown & Legal Formatter.
- * Automatically styles headings, numbered lists, key statutory definitions,
- * bold tags, and blockquotes with premium legal aesthetics.
+ * Formal Legal Analysis & Markdown Formatter.
+ * Delivers an authoritative, corporate legal layout with structured provisions,
+ * numbered legal breakdowns, and crisp typography with 0 emojis.
  */
 export function FormattedMessage({ content, isStreaming }: FormattedMessageProps) {
   if (!content) {
     return isStreaming ? (
-      <span className="inline-block w-1.5 h-4 bg-indigo-600 animate-pulse rounded-xs align-middle" />
+      <span className="inline-block w-1.5 h-4 bg-slate-900 animate-pulse rounded-xs align-middle" />
     ) : null;
   }
 
@@ -80,7 +80,7 @@ export function FormattedMessage({ content, isStreaming }: FormattedMessageProps
   const rawBlocks = content.split(/\n\n+/);
 
   return (
-    <div className="space-y-3 text-sm leading-relaxed text-zinc-900 font-sans">
+    <div className="space-y-3.5 text-sm leading-relaxed text-slate-900 font-sans">
       {rawBlocks.map((block, bIdx) => {
         const trimmed = block.trim();
         if (!trimmed) return null;
@@ -90,9 +90,9 @@ export function FormattedMessage({ content, isStreaming }: FormattedMessageProps
           return (
             <h3
               key={bIdx}
-              className="text-sm font-bold text-zinc-950 mt-4 mb-1.5 pb-1 border-b border-zinc-200/80 flex items-center gap-1.5 tracking-tight"
+              className="text-xs font-bold text-slate-900 uppercase tracking-wider mt-5 mb-2 pb-1 border-b border-slate-200 flex items-center gap-2"
             >
-              <span className="w-1.5 h-3.5 bg-indigo-600 rounded-full inline-block"></span>
+              <span className="w-1 h-3 bg-slate-900 rounded-full inline-block"></span>
               <span>{renderInline(trimmed.slice(4))}</span>
             </h3>
           );
@@ -103,7 +103,7 @@ export function FormattedMessage({ content, isStreaming }: FormattedMessageProps
           return (
             <h2
               key={bIdx}
-              className="text-base font-bold text-zinc-950 mt-5 mb-2 tracking-tight text-indigo-950"
+              className="text-sm font-bold text-slate-950 uppercase tracking-wider mt-6 mb-2 text-slate-900 border-b border-slate-300 pb-1"
             >
               {renderInline(trimmed.slice(3))}
             </h2>
@@ -116,7 +116,7 @@ export function FormattedMessage({ content, isStreaming }: FormattedMessageProps
           return (
             <blockquote
               key={bIdx}
-              className="my-3 pl-3.5 pr-3 py-2.5 border-l-3 border-indigo-600 bg-indigo-50/60 rounded-r-lg text-sm italic text-zinc-900 leading-relaxed shadow-2xs font-normal"
+              className="my-3 pl-4 pr-3 py-2.5 border-l-2 border-slate-900 bg-slate-50/80 rounded-r-md text-sm italic text-slate-900 leading-relaxed font-normal"
             >
               &ldquo;{renderInline(quoteBody)}&rdquo;
             </blockquote>
@@ -130,15 +130,15 @@ export function FormattedMessage({ content, isStreaming }: FormattedMessageProps
 
         if (isNumberedList) {
           return (
-            <div key={bIdx} className="space-y-2.5 my-2.5">
+            <div key={bIdx} className="space-y-2.5 my-3 pl-1">
               {lines.map((line, lIdx) => {
                 const numMatch = line.match(/^(\d+)\.\s+(.*)/);
                 const num = numMatch ? numMatch[1] : `${lIdx + 1}`;
                 const rest = numMatch ? numMatch[2] : line;
 
                 return (
-                  <div key={lIdx} className="flex items-start gap-2.5 text-zinc-800">
-                    <span className="shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 text-indigo-900 text-[11px] font-bold mt-0.5 shadow-2xs">
+                  <div key={lIdx} className="flex items-start gap-3 text-slate-800">
+                    <span className="shrink-0 flex items-center justify-center w-5 h-5 rounded-md bg-slate-900 text-white text-[10px] font-bold mt-0.5 shadow-2xs">
                       {num}
                     </span>
                     <div className="flex-1 text-sm leading-relaxed">{renderInline(rest)}</div>
@@ -151,12 +151,12 @@ export function FormattedMessage({ content, isStreaming }: FormattedMessageProps
 
         if (isBulletList) {
           return (
-            <div key={bIdx} className="space-y-2 my-2.5">
+            <div key={bIdx} className="space-y-2 my-2.5 pl-1">
               {lines.map((line, lIdx) => {
                 const rest = line.replace(/^[-*•]\s+/, "");
                 return (
-                  <div key={lIdx} className="flex items-start gap-2.5 text-zinc-800">
-                    <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2"></span>
+                  <div key={lIdx} className="flex items-start gap-2.5 text-slate-800">
+                    <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-slate-900 mt-2"></span>
                     <div className="flex-1 text-sm leading-relaxed">{renderInline(rest)}</div>
                   </div>
                 );
@@ -178,21 +178,21 @@ export function FormattedMessage({ content, isStreaming }: FormattedMessageProps
           return (
             <div
               key={bIdx}
-              className="p-3.5 rounded-xl bg-indigo-50/70 border border-indigo-200/90 text-zinc-950 shadow-2xs relative my-2"
+              className="p-4 rounded-lg bg-slate-50 border-l-3 border-slate-900 border-y border-r border-slate-200 text-slate-950 my-2 shadow-2xs"
             >
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-900 uppercase tracking-wider mb-1.5">
-                <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
-                <span>Core Statutory Definition</span>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-bold tracking-wider text-slate-700 uppercase bg-slate-200/90 px-2 py-0.5 rounded">
+                  Statutory Provision
+                </span>
               </div>
-              <div className="text-sm leading-relaxed text-zinc-900 font-normal">
+              <div className="text-sm leading-relaxed text-slate-900 font-normal">
                 {renderInline(trimmed)}
               </div>
             </div>
           );
         }
 
-        // 6. Mixed paragraph that may contain line-breaks with list items
-        // E.g.: "Key legal principles regarding a proposal include:\n1. **Objective**: ...\n2. **Type**: ..."
+        // 6. Mixed paragraph with sub-numbered items
         const hasSubList = lines.some((l) => /^\d+\.\s+/.test(l));
         if (hasSubList) {
           const introLines: string[] = [];
@@ -211,21 +211,21 @@ export function FormattedMessage({ content, isStreaming }: FormattedMessageProps
           }
 
           return (
-            <div key={bIdx} className="space-y-2.5 my-2">
+            <div key={bIdx} className="space-y-2.5 my-2.5">
               {introLines.length > 0 && (
-                <p className="font-semibold text-zinc-900 text-sm">
+                <p className="font-semibold text-slate-950 text-sm">
                   {renderInline(introLines.join(" "))}
                 </p>
               )}
-              <div className="space-y-2.5">
+              <div className="space-y-2.5 pl-1">
                 {listLines.map((line, lIdx) => {
                   const numMatch = line.match(/^(\d+)\.\s+(.*)/);
                   const num = numMatch ? numMatch[1] : `${lIdx + 1}`;
                   const rest = numMatch ? numMatch[2] : line;
 
                   return (
-                    <div key={lIdx} className="flex items-start gap-2.5 text-zinc-800">
-                      <span className="shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-indigo-100 text-indigo-900 text-[11px] font-bold mt-0.5 shadow-2xs">
+                    <div key={lIdx} className="flex items-start gap-3 text-slate-800">
+                      <span className="shrink-0 flex items-center justify-center w-5 h-5 rounded-md bg-slate-900 text-white text-[10px] font-bold mt-0.5 shadow-2xs">
                         {num}
                       </span>
                       <div className="flex-1 text-sm leading-relaxed">{renderInline(rest)}</div>
@@ -239,10 +239,10 @@ export function FormattedMessage({ content, isStreaming }: FormattedMessageProps
 
         // 7. Regular paragraph
         return (
-          <p key={bIdx} className="my-1.5 text-zinc-800 text-sm leading-relaxed">
+          <p key={bIdx} className="my-1.5 text-slate-800 text-sm leading-relaxed">
             {renderInline(trimmed)}
             {bIdx === rawBlocks.length - 1 && isStreaming && (
-              <span className="inline-block w-1.5 h-4 ml-1 bg-indigo-600 animate-pulse rounded-xs align-middle" />
+              <span className="inline-block w-1.5 h-4 ml-1 bg-slate-900 animate-pulse rounded-xs align-middle" />
             )}
           </p>
         );

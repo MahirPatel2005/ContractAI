@@ -8,6 +8,7 @@ import { ChatPanel } from "@/components/ChatPanel";
 import { ContractComparison } from "@/components/ContractComparison";
 import { MultiDocumentChat } from "@/components/MultiDocumentChat";
 import { RedlinePanel } from "@/components/RedlinePanel";
+import { FileTextIcon } from "@/components/Icons";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("library");
@@ -152,16 +153,18 @@ export default function Home() {
                 </div>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-zinc-300 bg-white p-12 text-center">
-                <span className="text-4xl mb-3">📄</span>
-                <h3 className="text-base font-semibold text-zinc-900">Select a contract to open in workspace</h3>
-                <p className="mt-1 text-xs text-zinc-500 max-w-sm">
+              <div className="flex-1 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-white p-12 text-center">
+                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 mb-3">
+                  <FileTextIcon className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-semibold text-slate-900">Select a contract to open in workspace</h3>
+                <p className="mt-1 text-xs text-slate-500 max-w-sm">
                   Choose a contract from your library to inspect pages, ask questions with verified citations, and launch agentic research.
                 </p>
                 <button
                   type="button"
                   onClick={() => setActiveTab("library")}
-                  className="mt-4 rounded-lg bg-indigo-900 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-800 transition cursor-pointer"
+                  className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-xs font-semibold text-white hover:bg-slate-800 transition cursor-pointer"
                 >
                   Go to Document Library
                 </button>

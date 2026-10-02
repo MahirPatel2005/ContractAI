@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type DragEvent } from "react";
+import { UploadIcon, AlertCircleIcon } from "./Icons";
 
 const ACCEPT = ".pdf,.docx";
 const MAX_BYTES = 25 * 1024 * 1024; // 25 MB
@@ -74,14 +75,14 @@ export function DocumentUpload({ onUploaded }: { onUploaded: () => void }) {
         onDragLeave={onDragLeave}
         onDrop={onDrop}
         className={`flex items-center gap-3 p-1 rounded-lg transition-all ${
-          isDragging ? "bg-indigo-50 border-indigo-400" : ""
+          isDragging ? "bg-slate-100 border-slate-400" : ""
         }`}
       >
         <button
           type="button"
           disabled={isUploading}
           onClick={() => input.current?.click()}
-          className="inline-flex items-center gap-2 rounded-lg bg-indigo-900 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-800 disabled:opacity-60 transition cursor-pointer"
+          className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-xs hover:bg-slate-800 disabled:opacity-60 transition cursor-pointer"
         >
           {isUploading ? (
             <>
@@ -93,19 +94,18 @@ export function DocumentUpload({ onUploaded }: { onUploaded: () => void }) {
             </>
           ) : (
             <>
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
+              <UploadIcon className="h-4 w-4 text-slate-300" />
               <span>Upload Contract</span>
             </>
           )}
         </button>
-        <span className="text-xs text-zinc-500 hidden sm:inline">PDF or DOCX (max 25MB)</span>
+        <span className="text-xs text-slate-500 hidden sm:inline font-medium">PDF or DOCX (max 25MB)</span>
       </div>
 
       {error && (
-        <div role="alert" className="mt-2 rounded-md bg-red-50 p-2.5 text-xs text-red-700 border border-red-200">
-          ⚠️ {error}
+        <div role="alert" className="mt-2 rounded-md bg-red-50 p-2.5 text-xs text-red-700 border border-red-200 flex items-center gap-1.5">
+          <AlertCircleIcon className="w-4 h-4 text-red-600 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
     </div>

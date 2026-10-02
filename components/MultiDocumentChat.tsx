@@ -5,6 +5,12 @@ import type { DocumentRow } from "./DocumentLibrary";
 import type { AnswerResult } from "@/lib/ai/answer";
 import type { VerifiedCitation } from "@/lib/citations/verifier";
 import { FormattedMessage } from "./FormattedMessage";
+import {
+  AlertCircleIcon,
+  CheckIcon,
+  FileTextIcon,
+  LayersIcon,
+} from "./Icons";
 
 interface MultiDocumentChatProps {
   documents: DocumentRow[];
@@ -142,48 +148,56 @@ export function MultiDocumentChat({ documents, preselectedIds }: MultiDocumentCh
         </form>
 
         {selectedDocIds.length < 2 && (
-          <p className="text-xs text-amber-700">Please select at least 2 contracts to compare.</p>
+          <p className="text-xs text-amber-700 font-medium">Please select at least 2 contracts to compare.</p>
         )}
 
         {error && (
-          <div className="rounded-lg bg-red-50 p-3 text-xs text-red-700 border border-red-200">
-            ⚠️ {error}
+          <div className="rounded-lg bg-red-50 p-3 text-xs text-red-700 border border-red-200 flex items-center gap-1.5">
+            <AlertCircleIcon className="w-4 h-4 text-red-600 shrink-0" />
+            <span>{error}</span>
           </div>
         )}
       </div>
 
       {/* Comparative Synthesis Result */}
       {result && (
-        <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-xs space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
-            <h3 className="text-base font-bold text-zinc-900">Comparative Answer & Evidence</h3>
-            <span className="text-xs text-emerald-800 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-              ✓ {result.citations.length} verified citations
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+            <h3 className="text-base font-bold text-slate-900">Comparative Answer & Evidence</h3>
+            <span className="text-xs text-emerald-800 font-semibold bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200 inline-flex items-center gap-1">
+              <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
+              <span>{result.citations.length} verified citations</span>
             </span>
           </div>
 
           {/* Insufficient Evidence Warning */}
           {result.insufficientEvidence && (
-            <div className="rounded-lg bg-amber-50 p-3.5 text-xs text-amber-800 border border-amber-200">
-              ⚠️ <strong>Notice:</strong> One or more contracts did not contain explicit clauses regarding this question. Unsupported global claims are avoided.
+            <div className="rounded-lg bg-amber-50 p-3.5 text-xs text-amber-800 border border-amber-200 flex items-start gap-2">
+              <AlertCircleIcon className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+              <div>
+                <strong>Notice:</strong> One or more contracts did not contain explicit clauses regarding this question. Unsupported global claims are avoided.
+              </div>
             </div>
           )}
 
           {/* Unverified Warning */}
           {result.unverified && (
-            <div className="rounded-lg bg-red-50 p-3.5 text-xs text-red-800 border border-red-200">
-              ⚠️ <strong>Warning:</strong> No claim in this answer could be backed by verified quotes from the documents.
+            <div className="rounded-lg bg-red-50 p-3.5 text-xs text-red-800 border border-red-200 flex items-start gap-2">
+              <AlertCircleIcon className="w-4 h-4 text-red-700 shrink-0 mt-0.5" />
+              <div>
+                <strong>Warning:</strong> No claim in this answer could be backed by verified quotes from the documents.
+              </div>
             </div>
           )}
 
           {/* Synthesis Body */}
-          <div className="bg-zinc-50/60 p-4 rounded-xl border border-zinc-200/80">
+          <div className="bg-slate-50/70 p-4 rounded-xl border border-slate-200">
             <FormattedMessage content={result.answer} />
           </div>
 
           {/* Citations Grouped By Document */}
           <div className="space-y-4 pt-2">
-            <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Grounded Evidence by Contract
             </h4>
 
@@ -193,10 +207,11 @@ export function MultiDocumentChat({ documents, preselectedIds }: MultiDocumentCh
                 const docName = doc?.name || cits[0]?.documentName || "Contract";
 
                 return (
-                  <div key={docId} className="rounded-xl border border-zinc-200 bg-zinc-50/50 p-4 space-y-2.5">
+                  <div key={docId} className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-2.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-indigo-950 truncate max-w-[220px]">
-                        📄 {docName}
+                      <span className="font-semibold text-xs text-slate-900 truncate max-w-[220px] flex items-center gap-1.5">
+                        <FileTextIcon className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                        <span>{docName}</span>
                       </span>
                       <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded">
                         {cits.length} {cits.length === 1 ? "quote" : "quotes"}
@@ -210,14 +225,17 @@ export function MultiDocumentChat({ documents, preselectedIds }: MultiDocumentCh
                           className="rounded-lg bg-white border border-emerald-200 p-2.5 text-xs space-y-1 shadow-2xs"
                         >
                           <div className="flex items-center justify-between text-[11px] text-emerald-800 font-semibold">
-                            <span>✓ Verified • Page {cit.pageStart}</span>
+                            <span className="flex items-center gap-1">
+                              <CheckIcon className="w-3 h-3 text-emerald-600" />
+                              <span>Verified • Page {cit.pageStart}</span>
+                            </span>
                             {cit.occurrences > 1 && (
-                              <span className="text-zinc-500 font-normal">
+                              <span className="text-slate-500 font-normal">
                                 ({cit.occurrences} matches in doc)
                               </span>
                             )}
                           </div>
-                          <p className="italic text-zinc-800 font-serif leading-relaxed line-clamp-3">
+                          <p className="italic text-slate-800 font-serif leading-relaxed line-clamp-3">
                             &quot;{cit.quote}&quot;
                           </p>
                         </div>

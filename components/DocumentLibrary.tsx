@@ -2,6 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { DocumentUpload } from "./DocumentUpload";
+import {
+  ScaleIcon,
+  LayersIcon,
+  FileTextIcon,
+  EditIcon,
+  AlertCircleIcon,
+  ArrowRightIcon,
+  TrashIcon,
+} from "./Icons";
 
 export type Status = "queued" | "extracting" | "ocr" | "chunking" | "indexing" | "ready" | "failed";
 
@@ -116,7 +125,10 @@ export function DocumentLibrary({ onOpenWorkspace, onCompareDocs, onMultiDocQ, o
 
       {error && (
         <div role="alert" className="rounded-lg bg-red-50 p-4 text-sm text-red-800 border border-red-200 flex items-center justify-between">
-          <span>⚠️ {error}</span>
+          <span className="flex items-center gap-1.5">
+            <AlertCircleIcon className="w-4 h-4 text-red-600 shrink-0" />
+            <span>{error}</span>
+          </span>
           <button onClick={() => setError(null)} className="text-red-600 hover:text-red-900 text-xs font-semibold cursor-pointer">
             Dismiss
           </button>
@@ -125,9 +137,9 @@ export function DocumentLibrary({ onOpenWorkspace, onCompareDocs, onMultiDocQ, o
 
       {/* Bulk actions banner if multiple selected */}
       {selectedIds.length > 0 && (
-        <div className="rounded-lg bg-indigo-50 border border-indigo-200 px-4 py-3 flex items-center justify-between transition-all">
-          <div className="flex items-center gap-2 text-sm text-indigo-950 font-medium">
-            <span className="h-5 w-5 rounded-full bg-indigo-600 text-white text-xs flex items-center justify-center font-bold">
+        <div className="rounded-lg bg-slate-100 border border-slate-300 px-4 py-3 flex items-center justify-between transition-all">
+          <div className="flex items-center gap-2 text-sm text-slate-900 font-medium">
+            <span className="h-5 w-5 rounded-full bg-slate-900 text-white text-xs flex items-center justify-center font-bold">
               {selectedIds.length}
             </span>
             <span>contracts selected</span>
@@ -137,22 +149,24 @@ export function DocumentLibrary({ onOpenWorkspace, onCompareDocs, onMultiDocQ, o
               <button
                 type="button"
                 onClick={() => onCompareDocs(selectedIds[0], selectedIds[1])}
-                className="rounded-md bg-indigo-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-800 transition cursor-pointer"
+                className="rounded-md bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5"
               >
-                ⚖️ Compare These 2 Contracts
+                <ScaleIcon className="w-3.5 h-3.5 text-slate-300" />
+                <span>Compare Selected Contracts</span>
               </button>
             )}
             <button
               type="button"
               onClick={() => onMultiDocQ(selectedIds)}
-              className="rounded-md bg-white border border-indigo-300 px-3 py-1.5 text-xs font-semibold text-indigo-900 hover:bg-indigo-100/60 transition cursor-pointer"
+              className="rounded-md bg-white border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-50 transition cursor-pointer flex items-center gap-1.5"
             >
-              🌐 Ask Across Selected ({selectedIds.length})
+              <LayersIcon className="w-3.5 h-3.5 text-slate-600" />
+              <span>Multi-Contract Inquiry ({selectedIds.length})</span>
             </button>
             <button
               type="button"
               onClick={() => setSelectedIds([])}
-              className="text-xs text-zinc-500 hover:text-zinc-800 px-2 py-1"
+              className="text-xs text-slate-500 hover:text-slate-800 px-2 py-1 cursor-pointer"
             >
               Clear
             </button>
@@ -162,20 +176,20 @@ export function DocumentLibrary({ onOpenWorkspace, onCompareDocs, onMultiDocQ, o
 
       {/* Loading state */}
       {documents === null && !error && (
-        <div className="py-12 text-center text-zinc-500">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-3 border-indigo-900 border-t-transparent"></div>
+        <div className="py-12 text-center text-slate-500">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-3 border-slate-800 border-t-transparent"></div>
           <p className="mt-3 text-sm font-medium">Loading your document repository…</p>
         </div>
       )}
 
       {/* Empty state */}
       {documents?.length === 0 && (
-        <div className="rounded-xl border-2 border-dashed border-zinc-300 bg-white p-12 text-center shadow-xs">
-          <div className="mx-auto h-12 w-12 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-900 text-2xl mb-3">
-            📑
+        <div className="rounded-xl border-2 border-dashed border-slate-300 bg-white p-12 text-center shadow-xs">
+          <div className="mx-auto h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 mb-3">
+            <FileTextIcon className="w-6 h-6 text-slate-500" />
           </div>
-          <h3 className="text-base font-semibold text-zinc-900">No contracts uploaded yet</h3>
-          <p className="mt-1 text-sm text-zinc-600 max-w-md mx-auto">
+          <h3 className="text-base font-semibold text-slate-900">No contracts uploaded yet</h3>
+          <p className="mt-1 text-sm text-slate-600 max-w-md mx-auto">
             Upload any text-based PDF or DOCX contract. ContractAI will extract page text, index clauses, and enable grounded Q&A with verified quotes.
           </p>
         </div>
@@ -255,19 +269,21 @@ export function DocumentLibrary({ onOpenWorkspace, onCompareDocs, onMultiDocQ, o
                     <button
                       type="button"
                       onClick={() => onOpenWorkspace(doc)}
-                      className="rounded-lg bg-indigo-900 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-indigo-800 transition cursor-pointer"
+                      className="rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-slate-800 transition cursor-pointer flex items-center gap-1.5"
                     >
-                      Open in Workspace →
+                      <span>Open in Workspace</span>
+                      <ArrowRightIcon className="w-3.5 h-3.5" />
                     </button>
 
                     {onRedlineDoc && (
                       <button
                         type="button"
                         onClick={() => onRedlineDoc(doc)}
-                        className="rounded-lg border border-indigo-200 bg-indigo-50/60 px-3 py-1.5 text-xs font-semibold text-indigo-900 hover:bg-indigo-100 transition cursor-pointer"
-                        title="Redline Contract (Part C Option 1)"
+                        className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-800 hover:bg-slate-100 transition cursor-pointer flex items-center gap-1.5"
+                        title="Redline Contract"
                       >
-                        ✏️ Redline
+                        <EditIcon className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Redline</span>
                       </button>
                     )}
 
@@ -278,9 +294,10 @@ export function DocumentLibrary({ onOpenWorkspace, onCompareDocs, onMultiDocQ, o
                           const other = readyDocuments.find((d) => d.id !== doc.id);
                           if (other) onCompareDocs(doc.id, other.id);
                         }}
-                        className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 transition cursor-pointer"
+                        className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition cursor-pointer flex items-center gap-1.5"
                       >
-                        ⚖️ Compare
+                        <ScaleIcon className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Compare</span>
                       </button>
                     )}
                   </>
@@ -291,7 +308,7 @@ export function DocumentLibrary({ onOpenWorkspace, onCompareDocs, onMultiDocQ, o
                     type="button"
                     disabled={retryingId === doc.id}
                     onClick={() => retryProcessing(doc.id)}
-                    className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-50 transition cursor-pointer"
+                    className="rounded-lg bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-800 disabled:opacity-50 transition cursor-pointer"
                   >
                     {retryingId === doc.id ? "Retrying…" : "Retry Processing"}
                   </button>
@@ -300,10 +317,11 @@ export function DocumentLibrary({ onOpenWorkspace, onCompareDocs, onMultiDocQ, o
                 <button
                   type="button"
                   onClick={() => remove(doc)}
-                  className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs font-medium text-zinc-500 hover:text-red-700 hover:bg-red-50 hover:border-red-200 transition cursor-pointer"
+                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-500 hover:text-red-700 hover:bg-red-50 hover:border-red-200 transition cursor-pointer flex items-center gap-1"
                   title="Delete Document"
                 >
-                  Delete
+                  <TrashIcon className="w-3.5 h-3.5" />
+                  <span>Delete</span>
                 </button>
               </div>
             </div>
