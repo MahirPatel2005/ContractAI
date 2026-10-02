@@ -107,6 +107,8 @@ export async function POST(req: NextRequest, { params }: Ctx) {
           assistantMessageId: assistantMessage.id,
         });
 
+        // 1. Scanning status
+        send({ type: "status", step: "locating", message: "Scanning document & locating relevant clauses…" });
         const docs = await loadDocuments([chat.documentId]);
         const doc = docs[0];
         const { chunks, coverage } = retrieveChunks(docs, question);
@@ -120,6 +122,9 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 
         // Check if Gemini is configured
         const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim() !== "");
+
+        // 2. Synthesizing status
+        send({ type: "status", step: "analyzing", message: "Synthesizing legal reasoning & statutory definitions…" });
 
         if (hasGeminiKey) {
           try {
@@ -158,6 +163,8 @@ export async function POST(req: NextRequest, { params }: Ctx) {
           return;
         }
 
+        // 3. Verifying status
+        send({ type: "status", step: "verifying", message: "Performing zero-trust quote verification…" });
         const final = finalizeAnswer(parsed, docs, coverage, ranges);
 
         // Stream answer text in chunks to provide typewriter effect
@@ -171,8 +178,8 @@ export async function POST(req: NextRequest, { params }: Ctx) {
           const word = words[i] + (i < words.length - 1 ? " " : "");
           accumulatedText += word;
           send({ type: "token", text: word });
-          // Micro delay for smooth reading experience
-          await new Promise((r) => setTimeout(r, 20));
+          // Fast micro delay for silky smooth reading experience without waiting
+          await new Promise((r) => setTimeout(r, 6));
         }
 
         // Persist citations in Prisma

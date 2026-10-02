@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ActiveCitation } from "./DocumentViewer";
+import { FormattedMessage } from "./FormattedMessage";
 
 interface ChatItem {
   id: string;
@@ -58,6 +59,7 @@ export function ChatPanel({ documentId, documentName, onSelectCitation }: ChatPa
   const [inputQuestion, setInputQuestion] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [streamingText, setStreamingText] = useState("");
+  const [liveStatus, setLiveStatus] = useState<string>("Scanning document & locating relevant clauses…");
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -213,6 +215,8 @@ export function ChatPanel({ documentId, documentName, onSelectCitation }: ChatPa
               if (event.type === "token") {
                 incomingText += event.text;
                 setStreamingText(incomingText);
+              } else if (event.type === "status") {
+                setLiveStatus(event.message);
               } else if (event.type === "done") {
                 finalCitations = event.citations || [];
                 const assistantMsg: MessageItem = {
@@ -411,10 +415,14 @@ export function ChatPanel({ documentId, documentName, onSelectCitation }: ChatPa
                 className={`max-w-[88%] rounded-xl px-4 py-3 text-sm leading-relaxed shadow-2xs ${
                   msg.role === "user"
                     ? "bg-indigo-950 text-white"
-                    : "bg-zinc-50 border border-zinc-200 text-zinc-900"
+                    : "bg-zinc-50 border border-zinc-200/90 text-zinc-900"
                 }`}
               >
-                <div className="whitespace-pre-wrap">{msg.content}</div>
+                {msg.role === "user" ? (
+                  <div className="whitespace-pre-wrap">{msg.content}</div>
+                ) : (
+                  <FormattedMessage content={msg.content} />
+                )}
 
                 {msg.cancelled && (
                   <span className="inline-block mt-2 text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
@@ -464,15 +472,55 @@ export function ChatPanel({ documentId, documentName, onSelectCitation }: ChatPa
             </div>
           ))}
 
-          {/* Currently Streaming Message */}
-          {isGenerating && streamingText && (
+          {/* Active Generation / Loading Message (No Waiting Delay) */}
+          {isGenerating && (
             <div className="flex flex-col items-start">
-              <div className="max-w-[88%] rounded-xl px-4 py-3 text-sm leading-relaxed bg-zinc-50 border border-zinc-200 text-zinc-900 shadow-2xs">
-                <div className="whitespace-pre-wrap">{streamingText}</div>
-                <div className="mt-2 flex items-center gap-1.5 text-xs text-indigo-700 font-medium">
-                  <span className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse"></span>
-                  <span>Verifying quotes against source document…</span>
-                </div>
+              <div className="max-w-[88%] min-w-[280px] rounded-xl px-4 py-3.5 text-sm leading-relaxed bg-zinc-50 border border-zinc-200/90 text-zinc-900 shadow-2xs">
+                {streamingText ? (
+                  <>
+                    <FormattedMessage content={streamingText} isStreaming={true} />
+                    <div className="mt-3 pt-2 border-t border-zinc-200/60 flex items-center justify-between text-xs text-indigo-700 font-medium">
+                      <div className="flex items-center gap-1.5">
+                        <span className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse"></span>
+                        <span>{liveStatus || "Verifying citations against source document…"}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCancel}
+                        className="text-[11px] text-zinc-400 hover:text-red-600 transition cursor-pointer px-1.5 py-0.5 rounded hover:bg-red-50"
+                      >
+                        ⏹ Stop
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  /* Immediate Loading Feedback (No Waiting Feel) */
+                  <div className="space-y-3 py-1">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex h-2.5 w-2.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-600"></span>
+                        </span>
+                        <span className="text-xs font-semibold text-indigo-950">
+                          {liveStatus || "Reading contract & locating operative provisions…"}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleCancel}
+                        className="text-[11px] text-zinc-400 hover:text-red-600 transition cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    {/* Animated thinking bars */}
+                    <div className="space-y-2 pt-1">
+                      <div className="h-2.5 bg-zinc-200/80 rounded-full w-4/5 animate-pulse"></div>
+                      <div className="h-2.5 bg-zinc-200/60 rounded-full w-3/5 animate-pulse"></div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}

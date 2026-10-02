@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { DocumentRow } from "./DocumentLibrary";
 import type { AnswerResult } from "@/lib/ai/answer";
 import type { VerifiedCitation } from "@/lib/citations/verifier";
+import { FormattedMessage } from "./FormattedMessage";
 
 interface MultiDocumentChatProps {
   documents: DocumentRow[];
@@ -176,8 +177,8 @@ export function MultiDocumentChat({ documents, preselectedIds }: MultiDocumentCh
           )}
 
           {/* Synthesis Body */}
-          <div className="text-sm leading-relaxed text-zinc-900 whitespace-pre-wrap font-sans bg-zinc-50/60 p-4 rounded-xl border border-zinc-100">
-            {result.answer}
+          <div className="bg-zinc-50/60 p-4 rounded-xl border border-zinc-200/80">
+            <FormattedMessage content={result.answer} />
           </div>
 
           {/* Citations Grouped By Document */}
