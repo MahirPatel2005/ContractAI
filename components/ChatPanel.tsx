@@ -23,10 +23,12 @@ interface ChatItem {
 }
 
 interface MessageCitation {
-  id: string;
+  id?: string;
   documentId: string;
   quote: string;
   pageNumber: number;
+  pageStart?: number;
+  pageEnd?: number;
   startOffset: number;
   endOffset: number;
   verified: boolean;
@@ -306,7 +308,28 @@ export function ChatPanel({ documentId, documentName, onSelectCitation }: ChatPa
                 setAgentSteps((prev) => [...prev, event]);
               } else if (event.type === "final") {
                 const finalAnswer = event.answer || event.result?.answer || "";
-                const finalCitations = event.citations || event.result?.citations || [];
+                interface RawCit {
+                  id?: string;
+                  documentId?: string;
+                  quote: string;
+                  pageNumber?: number;
+                  pageStart?: number;
+                  pageEnd?: number;
+                  startOffset?: number;
+                  endOffset?: number;
+                }
+                const rawCitations: RawCit[] = event.citations || event.result?.citations || [];
+                const finalCitations: MessageCitation[] = rawCitations.map((c, i) => ({
+                  id: c.id || `agent-cit-${i}`,
+                  documentId: c.documentId || documentId,
+                  quote: c.quote,
+                  pageNumber: c.pageNumber || c.pageStart || 1,
+                  pageStart: c.pageStart || c.pageNumber || 1,
+                  pageEnd: c.pageEnd || c.pageNumber || 1,
+                  startOffset: c.startOffset ?? 0,
+                  endOffset: c.endOffset ?? (c.quote ? c.quote.length : 0),
+                  verified: true,
+                }));
                 setAgentAnswer(finalAnswer);
                 setAgentCitations(finalCitations);
               } else if (event.type === "error") {
@@ -630,48 +653,78 @@ export function ChatPanel({ documentId, documentName, onSelectCitation }: ChatPa
 
           {/* Final Agent Answer */}
           {agentAnswer && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
-              <span className="text-xs font-bold text-slate-900 tracking-wider flex items-center gap-1.5 uppercase">
-                <ShieldCheckIcon className="w-4 h-4 text-emerald-600" />
-                <span>Final Verified Synthesis</span>
-              </span>
-              <div className="text-sm leading-relaxed text-slate-900 whitespace-pre-wrap">
-                {agentAnswer}
+            <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3.5 shadow-2xs">
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
+                <div className="flex items-center gap-2">
+                  <span className="p-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <ShieldCheckIcon className="w-4 h-4" />
+                  </span>
+                  <div>
+                    <h4 className="text-xs font-bold text-slate-900 tracking-wider uppercase">
+                      Final Verified Synthesis
+                    </h4>
+                    <p className="text-[10px] text-slate-500">Autonomous multi-provision synthesis</p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <CheckIcon className="w-3 h-3 text-emerald-600" />
+                  Zero-Trust Verified
+                </span>
+              </div>
+
+              <div className="text-sm leading-relaxed text-slate-900">
+                <FormattedMessage content={agentAnswer} />
               </div>
 
               {agentCitations.length > 0 && (
-                <div className="pt-2 border-t border-slate-200 space-y-1.5">
-                  <span className="text-[11px] font-semibold text-emerald-800 uppercase block">
-                    Verified Citations ({agentCitations.length})
-                  </span>
-                  {agentCitations.map((cit, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() =>
-                        onSelectCitation({
-                          documentId: cit.documentId,
-                          quote: cit.quote,
-                          pageNumber: cit.pageNumber,
-                          startOffset: cit.startOffset,
-                          endOffset: cit.endOffset,
-                          verified: true,
-                        })
-                      }
-                      className="p-2 rounded bg-white border border-emerald-200 hover:border-emerald-400 cursor-pointer text-xs"
-                    >
-                      <div className="flex items-center justify-between text-emerald-800 font-semibold">
-                        <span className="flex items-center gap-1">
-                          <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Verified • Page {cit.pageNumber}</span>
-                        </span>
-                        <span className="text-slate-600 font-normal inline-flex items-center gap-1">
-                          <span>Inspect quote</span>
-                          <ArrowRightIcon className="w-3 h-3" />
-                        </span>
+                <div className="pt-3 border-t border-slate-100 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
+                      Verified Citations ({agentCitations.length})
+                    </span>
+                    <span className="text-[10px] text-slate-500">
+                      Click to locate source in contract
+                    </span>
+                  </div>
+                  {agentCitations.map((cit, idx) => {
+                    const pageDisplay = cit.pageNumber || cit.pageStart || 1;
+                    return (
+                      <div
+                        key={cit.id || idx}
+                        onClick={() =>
+                          onSelectCitation({
+                            id: cit.id,
+                            documentId: cit.documentId || documentId,
+                            quote: cit.quote,
+                            pageNumber: pageDisplay,
+                            pageStart: cit.pageStart || pageDisplay,
+                            pageEnd: cit.pageEnd || pageDisplay,
+                            startOffset: cit.startOffset ?? 0,
+                            endOffset: cit.endOffset ?? (cit.quote ? cit.quote.length : 0),
+                            verified: true,
+                          })
+                        }
+                        className="group flex flex-col p-2.5 rounded-lg border border-emerald-200 bg-emerald-50/40 hover:bg-emerald-50 hover:border-emerald-400 transition cursor-pointer text-xs"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-800">
+                            <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Verified Clause</span>
+                            <span className="text-slate-600 font-normal">
+                              • Page {pageDisplay}
+                            </span>
+                          </span>
+                          <span className="text-[11px] text-slate-700 group-hover:text-slate-950 font-medium inline-flex items-center gap-1">
+                            <span>Inspect provision</span>
+                            <ArrowRightIcon className="w-3 h-3 text-slate-400 group-hover:text-slate-700" />
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs italic text-slate-700 line-clamp-2">
+                          &quot;{cit.quote}&quot;
+                        </p>
                       </div>
-                      <p className="italic text-slate-700 mt-0.5 line-clamp-1">&quot;{cit.quote}&quot;</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

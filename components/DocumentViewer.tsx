@@ -84,28 +84,66 @@ export function DocumentViewer({ documentId, activeCitation, onClearCitation }: 
     };
   }, [documentId]);
 
+  // Resolve target page for active citation using offsets, resilient text matching, or page number
+  const activeCitationPage = (() => {
+    if (!activeCitation || !content) return null;
+
+    // 1. Exact startOffset intersection if valid
+    if (
+      typeof activeCitation.startOffset === "number" &&
+      typeof activeCitation.endOffset === "number" &&
+      activeCitation.endOffset > activeCitation.startOffset
+    ) {
+      const pageByOffset = content.pages.find((p) => {
+        const pEnd = p.startOffset + p.text.length;
+        return activeCitation.startOffset >= p.startOffset && activeCitation.startOffset < pEnd;
+      });
+      if (pageByOffset) return pageByOffset.pageNumber;
+    }
+
+    // 2. Search quote text across pages (verbatim first, then token regex)
+    if (activeCitation.quote) {
+      const verbatimPage = content.pages.find((p) => p.text.includes(activeCitation.quote));
+      if (verbatimPage) return verbatimPage.pageNumber;
+
+      const tokens = activeCitation.quote.trim().split(/\s+/).filter(Boolean).slice(0, 8);
+      if (tokens.length > 0) {
+        try {
+          const pattern = tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
+          const re = new RegExp(pattern, "i");
+          const found = content.pages.find((p) => re.test(p.text));
+          if (found) return found.pageNumber;
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    // 3. Fallback to citation's explicit pageNumber or pageStart
+    return activeCitation.pageNumber || activeCitation.pageStart || 1;
+  })();
+
   // Handle active citation jump and highlight scroll
   useEffect(() => {
-    if (!activeCitation || !content) return;
+    if (!activeCitation || !content || !activeCitationPage) return;
 
-    const targetPage = activeCitation.pageNumber || activeCitation.pageStart || 1;
-    setCurrentPage(targetPage);
+    setCurrentPage(activeCitationPage);
 
-    // Give DOM a frame to update
+    // Scroll smoothly to target element
     const timeout = setTimeout(() => {
       const highlightElem = document.getElementById("citation-highlight-target");
       if (highlightElem) {
         highlightElem.scrollIntoView({ behavior: "smooth", block: "center" });
       } else {
-        const pageElem = pageRefs.current.get(targetPage);
+        const pageElem = pageRefs.current.get(activeCitationPage);
         if (pageElem) {
           pageElem.scrollIntoView({ behavior: "smooth", block: "start" });
         }
       }
-    }, 100);
+    }, 150);
 
     return () => clearTimeout(timeout);
-  }, [activeCitation, content]);
+  }, [activeCitation, content, activeCitationPage]);
 
   function jumpToPage(n: number) {
     if (!content) return;
@@ -240,7 +278,9 @@ export function DocumentViewer({ documentId, activeCitation, onClearCitation }: 
               <CheckIcon className="w-3.5 h-3.5 text-emerald-600" />
               <span>Verified Citation</span>
             </span>
-            <span className="text-amber-800 font-medium">• Page {activeCitation.pageNumber}</span>
+            <span className="text-amber-800 font-medium">
+              • Page {activeCitationPage || activeCitation.pageNumber || 1}
+            </span>
             <span className="truncate italic text-slate-700 max-w-sm hidden sm:inline" title={activeCitation.quote}>
               &quot;{activeCitation.quote}&quot;
             </span>
@@ -266,9 +306,12 @@ export function DocumentViewer({ documentId, activeCitation, onClearCitation }: 
       >
         {content.pages.map((page) => {
           const isPageWithCitation =
-            activeCitation &&
-            page.pageNumber >= (activeCitation.pageStart || activeCitation.pageNumber) &&
-            page.pageNumber <= (activeCitation.pageEnd || activeCitation.pageNumber);
+            Boolean(activeCitation) &&
+            (page.pageNumber === activeCitationPage ||
+              (Boolean(activeCitation?.pageStart) &&
+                Boolean(activeCitation?.pageEnd) &&
+                page.pageNumber >= activeCitation!.pageStart! &&
+                page.pageNumber <= activeCitation!.pageEnd!));
 
           return (
             <div
@@ -325,17 +368,70 @@ function RenderPageContent({
 
   // 1. Check if active citation falls inside this page
   if (activeCitation) {
+    let relStart = -1;
+    let relEnd = -1;
+
     const pageStart = page.startOffset;
     const pageEnd = pageStart + text.length;
-
     const citStart = activeCitation.startOffset;
     const citEnd = activeCitation.endOffset;
 
-    // Intersects with page
-    if (citStart < pageEnd && citEnd > pageStart) {
-      const relStart = Math.max(0, citStart - pageStart);
-      const relEnd = Math.min(text.length, citEnd - pageStart);
+    // Exact offset intersection
+    if (
+      typeof citStart === "number" &&
+      typeof citEnd === "number" &&
+      citStart < pageEnd &&
+      citEnd > pageStart &&
+      citEnd > citStart
+    ) {
+      relStart = Math.max(0, citStart - pageStart);
+      relEnd = Math.min(text.length, citEnd - pageStart);
+    }
 
+    // Direct verbatim quote fallback match if offset didn't hit
+    if ((relStart < 0 || relEnd <= relStart) && activeCitation.quote) {
+      const idx = text.indexOf(activeCitation.quote);
+      if (idx !== -1) {
+        relStart = idx;
+        relEnd = idx + activeCitation.quote.length;
+      }
+    }
+
+    // 3. Resilient regex token matching across whitespace / newlines
+    if ((relStart < 0 || relEnd <= relStart) && activeCitation.quote) {
+      const tokens = activeCitation.quote.trim().split(/\s+/).filter(Boolean);
+      if (tokens.length > 0) {
+        // Try full tokens first
+        try {
+          const pattern = tokens.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
+          const re = new RegExp(pattern, "i");
+          const m = re.exec(text);
+          if (m) {
+            relStart = m.index;
+            relEnd = m.index + m[0].length;
+          }
+        } catch {
+          // ignore
+        }
+
+        // If full tokens failed (e.g. quote ends with punctuation discrepancy), try first 8 tokens
+        if ((relStart < 0 || relEnd <= relStart) && tokens.length > 4) {
+          try {
+            const prefix = tokens.slice(0, 8).map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("\\s+");
+            const re = new RegExp(prefix, "i");
+            const m = re.exec(text);
+            if (m) {
+              relStart = m.index;
+              relEnd = Math.min(text.length, m.index + activeCitation.quote.length);
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+
+    if (relStart >= 0 && relEnd > relStart) {
       const before = text.slice(0, relStart);
       const highlighted = text.slice(relStart, relEnd);
       const after = text.slice(relEnd);
@@ -345,7 +441,7 @@ function RenderPageContent({
           {renderSearchHighlights(before, searchQuery)}
           <mark
             id="citation-highlight-target"
-            className="citation-highlight-active inline bg-amber-200/90 text-zinc-950 font-medium rounded-sm px-1 py-0.5 border-b-2 border-amber-600 shadow-xs cursor-default"
+            className="citation-highlight-active inline bg-amber-200 text-zinc-950 font-medium rounded-sm px-1 py-0.5 border-b-2 border-amber-600 shadow-xs cursor-default ring-2 ring-amber-400"
             title={`Verified Citation: "${activeCitation.quote}"`}
           >
             {highlighted}
