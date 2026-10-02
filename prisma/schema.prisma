@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DocumentStatus {
+  queued
+  extracting
+  ocr
+  chunking
+  indexing
+  ready
+  failed
+}
+
+enum MessageRole {
+  user
+  assistant
+}
+
+model Document {
+  id            String         @id @default(cuid())
+  name          String
+  type          String // "pdf" | "docx"
+  storageKey    String         @unique // generated; never derived from the user's filename
+  status        DocumentStatus @default(queued)
+  statusMessage String?
+  pageCount     Int?
+  // Original extracted text (pages joined by PAGE_SEPARATOR). Never overwritten with normalized text.
+  fullText      String?        @db.Text
+  createdAt     DateTime       @default(now())
+
+  pages     Page[]
+  chunks    Chunk[]
+  chats     Chat[]
+  citations Citation[]
+
+  @@index([createdAt])
+  @@index([status])
+}
+
+model Page {
+  id          String   @id @default(cuid())
+  documentId  String
+  pageNumber  Int
+  text        String   @db.Text
+  startOffset Int // offset of this page inside Document.fullText
+  items       Json? // PDF.js text items with coordinates, for citation highlighting
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, pageNumber])
+  @@index([documentId])
+}
+
+model Chunk {
+  id          String @id @default(cuid())
+  documentId  String
+  pageStart   Int
+  pageEnd     Int
+  text        String @db.Text
+  startOffset Int
+  endOffset   Int
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+}
+
+model Chat {
+  id         String   @id @default(cuid())
+  documentId String
+  title      String?
+  createdAt  DateTime @default(now())
+
+  document Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([documentId])
+}
+
+model Message {
+  id        String      @id @default(cuid())
+  chatId    String
+  role      MessageRole
+  content   String      @db.Text
+  cancelled Boolean     @default(false)
+  createdAt DateTime    @default(now())
+
+  chat      Chat       @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  citations Citation[]
+
+  @@index([chatId])
+}
+
+model Citation {
+  id          String  @id @default(cuid())
+  messageId   String
+  documentId  String
+  quote       String  @db.Text
+  pageNumber  Int
+  startOffset Int
+  endOffset   Int
+  verified    Boolean
+
+  message  Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([documentId])
+}
