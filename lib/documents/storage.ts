@@ -1,7 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-const STORAGE_DIR = path.join(process.cwd(), ".storage", "documents");
+const STORAGE_DIR =
+  process.env.STORAGE_DIR ||
+  (process.env.VERCEL ? path.join("/tmp", "storage", "documents") : path.join(process.cwd(), ".storage", "documents"));
 
 async function ensureStorageDir(): Promise<string> {
   await fs.mkdir(STORAGE_DIR, { recursive: true });
