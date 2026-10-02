@@ -223,25 +223,67 @@ export function RedlinePanel({ documents, initialDocumentId }: RedlinePanelProps
               <span className="font-mono text-[10px] text-slate-400">Author: ContractAI</span>
             </div>
 
-            <div className="bg-white p-5 rounded-md border border-slate-200 font-serif leading-relaxed text-sm text-slate-900 space-y-3">
-              <div className="space-y-2">
-                <span className="text-[10px] font-sans font-bold uppercase text-red-700 block tracking-wider">
-                  [-] Tracked Deletion (&lt;w:del&gt;)
-                </span>
-                <div className="line-through decoration-red-600 bg-red-50 text-red-950 p-3 rounded border border-red-200 font-medium">
-                  {proposal.targetText}
-                </div>
-              </div>
+            {/* In-Context Legal Redline (Word & PDF View) */}
+            {(() => {
+              const context = proposal.contextSentence || "";
+              const hasContext = Boolean(context && context.includes(proposal.targetText));
+              const [prefix, suffix] = hasContext ? context.split(proposal.targetText) : ["", ""];
 
-              <div className="space-y-2 pt-2">
-                <span className="text-[10px] font-sans font-bold uppercase text-emerald-700 block tracking-wider">
-                  [+] Tracked Insertion (&lt;w:ins&gt;)
-                </span>
-                <div className="underline decoration-emerald-600 bg-emerald-50 text-emerald-950 p-3 rounded border border-emerald-200 font-medium">
-                  {proposal.revisedText}
+              return (
+                <div className="bg-white p-5 rounded-md border border-slate-200 font-serif leading-relaxed text-sm text-slate-900 space-y-3">
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-sans font-bold uppercase text-slate-500 block tracking-wider">
+                      In-Context Operative Clause Redline
+                    </span>
+                    <div className="p-3.5 rounded-lg bg-slate-50/80 border border-slate-200 text-slate-900 leading-relaxed">
+                      {hasContext ? (
+                        <>
+                          <span>{prefix}</span>
+                          <span className="line-through decoration-red-600 bg-red-100 text-red-950 px-1 py-0.5 rounded font-sans font-medium">
+                            {proposal.targetText}
+                          </span>
+                          <span className="mx-1"></span>
+                          <span className="underline decoration-2 decoration-emerald-600 bg-emerald-100 text-emerald-950 px-1 py-0.5 rounded font-sans font-medium">
+                            {proposal.revisedText}
+                          </span>
+                          <span>{suffix}</span>
+                        </>
+                      ) : (
+                        <div>
+                          <span className="line-through decoration-red-600 bg-red-100 text-red-950 px-1 py-0.5 rounded font-sans font-medium mr-2">
+                            [-] {proposal.targetText}
+                          </span>
+                          <span className="underline decoration-2 decoration-emerald-600 bg-emerald-100 text-emerald-950 px-1 py-0.5 rounded font-sans font-medium">
+                            [+] {proposal.revisedText}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Surgical OpenXML Runs Breakdown */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-sans font-bold uppercase text-red-700 block tracking-wider">
+                        [-] Tracked Deletion (&lt;w:del&gt;)
+                      </span>
+                      <div className="line-through decoration-red-600 bg-red-50 text-red-950 p-2.5 rounded border border-red-200 font-medium text-xs">
+                        {proposal.targetText}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-sans font-bold uppercase text-emerald-700 block tracking-wider">
+                        [+] Tracked Insertion (&lt;w:ins&gt;)
+                      </span>
+                      <div className="underline decoration-emerald-600 bg-emerald-50 text-emerald-950 p-2.5 rounded border border-emerald-200 font-medium text-xs">
+                        {proposal.revisedText}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              );
+            })()}
 
             <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
               <span className="inline-flex items-center gap-1.5">
