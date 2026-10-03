@@ -2,12 +2,15 @@ import type { NextRequest } from "next/server";
 import { fail, handleError, ok } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 
+import { getSessionId } from "@/lib/session";
+
 export const runtime = "nodejs";
 type Ctx = { params: Promise<{ id: string }> };
 
-export async function GET(_req: NextRequest, { params }: Ctx) {
+export async function GET(req: NextRequest, { params }: Ctx) {
   try {
     const { id } = await params;
+    const { sessionId } = await getSessionId(req);
     const document = await prisma.document.findUnique({
       where: { id },
       include: {
@@ -24,6 +27,9 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
     });
 
     if (!document) return fail("NOT_FOUND", "Document not found.", 404);
+    if (!document.isSample && document.sessionId && document.sessionId !== sessionId) {
+      return fail("FORBIDDEN", "You do not have access to this document.", 403);
+    }
 
     return ok({
       document: {

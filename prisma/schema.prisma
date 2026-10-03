@@ -32,6 +32,8 @@ model Document {
   pageCount     Int?
   // Original extracted text (pages joined by PAGE_SEPARATOR). Never overwritten with normalized text.
   fullText      String?        @db.Text
+  sessionId     String?        // Anonymous browser session isolation
+  isSample      Boolean        @default(false)
   createdAt     DateTime       @default(now())
 
   pages     Page[]
@@ -41,6 +43,8 @@ model Document {
 
   @@index([createdAt])
   @@index([status])
+  @@index([sessionId])
+  @@index([isSample])
 }
 
 model Page {

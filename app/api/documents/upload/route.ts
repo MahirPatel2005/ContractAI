@@ -6,22 +6,37 @@ import { UploadError, validateUpload } from "@/lib/documents/validate";
 import { fail, handleError, ok } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 
+import { attachSessionCookie, getSessionId } from "@/lib/session";
+
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
+    const { sessionId, isNew } = await getSessionId(req);
     const file = (await req.formData()).get("file");
     if (!(file instanceof File)) return fail("UPLOAD_FAILED", "Choose a PDF or DOCX file to upload.", 400);
 
     const { type, buffer, name } = await validateUpload(file);
     const storageKey = randomUUID();
     await saveDocumentFile(storageKey, type, buffer);
-    const doc = await prisma.document.create({ data: { name, type, storageKey } });
+    const doc = await prisma.document.create({
+      data: {
+        name,
+        type,
+        storageKey,
+        sessionId,
+        isSample: false,
+      },
+    });
 
     // Respond immediately; the UI polls GET /api/documents for stage-by-stage status.
     after(() => processDocument(doc.id, buffer, type));
-    return ok({ documentId: doc.id, status: "queued" }, 201);
+    const res = ok({ documentId: doc.id, status: "queued" }, 201);
+    if (isNew) {
+      attachSessionCookie(res, sessionId);
+    }
+    return res;
   } catch (error) {
     if (error instanceof TypeError) return handleError(new UploadError("UPLOAD_FAILED", "The upload could not be read.", 400), "upload");
     return handleError(error, "upload");

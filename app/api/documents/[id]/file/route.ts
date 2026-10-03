@@ -3,17 +3,23 @@ import { getDocumentFile } from "@/lib/documents/storage";
 import { fail, handleError } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
 
+import { getSessionId } from "@/lib/session";
+
 export const runtime = "nodejs";
 type Ctx = { params: Promise<{ id: string }> };
 
-export async function GET(_req: NextRequest, { params }: Ctx) {
+export async function GET(req: NextRequest, { params }: Ctx) {
   try {
     const { id } = await params;
+    const { sessionId } = await getSessionId(req);
     const document = await prisma.document.findUnique({
       where: { id },
-      select: { id: true, name: true, type: true, storageKey: true },
+      select: { id: true, name: true, type: true, storageKey: true, sessionId: true, isSample: true },
     });
     if (!document) return fail("NOT_FOUND", "Document not found.", 404);
+    if (!document.isSample && document.sessionId && document.sessionId !== sessionId) {
+      return fail("FORBIDDEN", "You do not have access to this document.", 403);
+    }
 
     const buffer = await getDocumentFile(document.storageKey, document.type as "pdf" | "docx");
     if (!buffer) return fail("NOT_FOUND", "The original document file could not be found on the server.", 404);
