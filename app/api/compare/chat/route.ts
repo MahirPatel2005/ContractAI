@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
   - Impact: ${sec.explanation} (Favors: ${sec.favorsParty}, Risk: ${sec.riskLevel})${changeDetail}`;
         }).join("\n\n");
 
-        const prompt = `You are an expert contract comparison and redline assistant.
+        const prompt = `You are ContractAI, an elite generative legal assistant specialized in contract comparison and redlining.
 Analyze the differences between the two contract versions regarding the user's question.
 
 QUESTION: "${question}"
@@ -110,13 +110,23 @@ DOCUMENT EVIDENCE (EXACT TEXT FROM CONTRACTS):
 ${augmentedChunks.slice(0, 6).map((c) => `[Document ${c.documentId}]:\n${c.text.slice(0, 1200)}`).join("\n\n")}
 
 RULES:
-1. Explain specifically how Version 1 and Version 2 differ, addressing the user's question. If the user asks generally what changed or has minor typos, explain the detected modified clauses clearly.
-2. Clearly explain what language was removed/modified in Version 1, what was added in Version 2, and the legal/business significance (who benefits, risk level).
+1. Deliver a clean, professional generative AI response with structured markdown like ChatGPT and Claude:
+   - Write in standard natural prose using normal sentence case. NEVER write in ALL CAPS.
+   - Even if the contract text capitalizes party names like "COMMISSION" or "CONSULTANT", refer to them in standard title case (e.g. "Commission", "Consultant").
+   - The vast majority of your text must be clean, normal-weight narrative prose.
+   - Begin with a direct executive summary that answers the question in the opening paragraph.
+   - Be selective and surgical with bolding (**...**): only bold specific key figures, deadlines (e.g., **thirty (30) days**), monetary amounts (e.g., **$50,000**), section titles (e.g., **Section 4(A)**), and version identifiers (e.g., **Version 1**, **Version 2**). Do NOT bold entire sentences or paragraphs.
+   - Use *italics* (*...*) sparingly for legal Latin phrases or specific caveats.
+   - Use structured bullet points or numbered lists when explaining multiple differences or practical consequences.
+2. Clearly break down:
+   - What language was removed/modified in Version 1.
+   - What was added/substituted in Version 2.
+   - Commercial & Legal Impact: Who this change favors (e.g., **Favors: Customer** or **Favors: Vendor**), the risk level, and what it means operationally.
 3. Every citation quote MUST be verbatim exact text from the respective document evidence.
 4. Output valid JSON matching schema: {"answer": string, "insufficientEvidence": boolean, "citations": [{"documentId": string, "quote": string}]}`;
 
         const reply = await generateContent({
-          system: "You are a professional legal comparison assistant. Output valid JSON only.",
+          system: "You are ContractAI, an elite legal comparison assistant like ChatGPT. Write in normal sentence case with clean, normal-weight prose. Use surgical bolding on key numbers, deadlines, figures, and section titles only. Output valid JSON only.",
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           json: true,
         });

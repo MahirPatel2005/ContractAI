@@ -123,21 +123,35 @@ export function DocumentViewer({ documentId, activeCitation, onClearCitation }: 
     return activeCitation.pageNumber || activeCitation.pageStart || 1;
   })();
 
+  // Helper to scroll ONLY within viewerContainerRef vertically, never moving the window
+  function scrollViewerToElement(target: HTMLElement | null, align: "center" | "start" = "center") {
+    const container = viewerContainerRef.current;
+    if (!container || !target) return;
+    const containerRect = container.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const relativeTop = targetRect.top - containerRect.top;
+    const targetScrollTop =
+      align === "center"
+        ? container.scrollTop + relativeTop - container.clientHeight / 2 + target.clientHeight / 2
+        : container.scrollTop + relativeTop - 20;
+    container.scrollTo({ top: Math.max(0, targetScrollTop), behavior: "smooth" });
+  }
+
   // Handle active citation jump and highlight scroll
   useEffect(() => {
     if (!activeCitation || !content || !activeCitationPage) return;
 
     setCurrentPage(activeCitationPage);
 
-    // Scroll smoothly to target element
+    // Scroll smoothly to target element strictly inside the viewer container
     const timeout = setTimeout(() => {
       const highlightElem = document.getElementById("citation-highlight-target");
       if (highlightElem) {
-        highlightElem.scrollIntoView({ behavior: "smooth", block: "center" });
+        scrollViewerToElement(highlightElem, "center");
       } else {
         const pageElem = pageRefs.current.get(activeCitationPage);
         if (pageElem) {
-          pageElem.scrollIntoView({ behavior: "smooth", block: "start" });
+          scrollViewerToElement(pageElem, "start");
         }
       }
     }, 150);
@@ -151,7 +165,7 @@ export function DocumentViewer({ documentId, activeCitation, onClearCitation }: 
     setCurrentPage(bounded);
     const elem = pageRefs.current.get(bounded);
     if (elem) {
-      elem.scrollIntoView({ behavior: "smooth", block: "start" });
+      scrollViewerToElement(elem, "start");
     }
   }
 

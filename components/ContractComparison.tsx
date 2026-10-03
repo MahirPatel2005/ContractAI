@@ -5,6 +5,7 @@ import type { ComparisonReport, MatchedSectionComparison, Significance, ChangeSt
 import { diffWords } from "@/lib/comparison/diff";
 import type { DocumentRow } from "./DocumentLibrary";
 import type { VerifiedCitation } from "@/lib/citations/verifier";
+import { FormattedMessage } from "./FormattedMessage";
 import {
   ScaleIcon,
   MessageSquareIcon,
@@ -37,8 +38,9 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Active highlighted section
+  // Active highlighted section & jump-to-change highlight
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
+  const [highlightedChangeId, setHighlightedChangeId] = useState<string | null>(null);
 
   // Synchronized scrolling state
   const leftPaneRef = useRef<HTMLDivElement>(null);
@@ -56,11 +58,17 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatMessagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages, chatLoading]);
+    // Only scroll within the chat box itself when new messages arrive, never scroll the whole window
+    if (chatMessages.length > 0 && chatMessagesRef.current) {
+      chatMessagesRef.current.scrollTo({
+        top: chatMessagesRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [chatMessages.length, chatLoading]);
 
   useEffect(() => {
     if (initialLeftId) setLeftDocId(initialLeftId);
@@ -122,12 +130,44 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
     });
   }
 
+  // Helper to scroll ONLY the internal pane container vertically, never touching window or horizontal scroll
+  function scrollPaneToElement(pane: HTMLElement | null, target: HTMLElement | null) {
+    if (!pane || !target) return;
+    const paneRect = pane.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const relativeTop = targetRect.top - paneRect.top;
+    const targetScrollTop = pane.scrollTop + relativeTop - (pane.clientHeight / 2) + (target.clientHeight / 2);
+    pane.scrollTo({ top: Math.max(0, targetScrollTop), behavior: "smooth" });
+  }
+
   function scrollToSection(secId: string) {
     setActiveSectionId(secId);
     const leftEl = document.getElementById(`left-${secId}`);
     const rightEl = document.getElementById(`right-${secId}`);
-    if (leftEl) leftEl.scrollIntoView({ behavior: "smooth", block: "start" });
-    if (rightEl) rightEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollPaneToElement(leftPaneRef.current, leftEl);
+    scrollPaneToElement(rightPaneRef.current, rightEl);
+  }
+
+  function jumpToChange(secId: string, side?: "left" | "right") {
+    setActiveSectionId(secId);
+    setHighlightedChangeId(secId);
+
+    // Scroll targets within their respective pane containers only
+    setTimeout(() => {
+      const leftTarget = document.getElementById(`diff-target-left-${secId}`);
+      const rightTarget = document.getElementById(`diff-target-right-${secId}`);
+      const leftCard = document.getElementById(`left-${secId}`);
+      const rightCard = document.getElementById(`right-${secId}`);
+
+      if (side === "left") {
+        scrollPaneToElement(leftPaneRef.current, leftTarget || leftCard);
+      } else if (side === "right") {
+        scrollPaneToElement(rightPaneRef.current, rightTarget || rightCard);
+      } else {
+        scrollPaneToElement(leftPaneRef.current, leftTarget || leftCard);
+        scrollPaneToElement(rightPaneRef.current, rightTarget || rightCard);
+      }
+    }, 50);
   }
 
   // Handle Comparison Chat Questions
@@ -297,7 +337,7 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
           </div>
 
           {/* Main Comparison Area: Change Navigator (Left) + Side-by-Side Panes (Center) + Comparison Assistant (Right) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 w-full max-w-full overflow-x-hidden">
             {/* Left Column: Change Navigator */}
             <div
               className={`${
@@ -434,7 +474,12 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
                       side="left"
                       sec={sec}
                       isActive={activeSectionId === sec.id}
-                      onClick={() => setActiveSectionId(sec.id)}
+                      isHighlightedChange={highlightedChangeId === sec.id}
+                      onClick={() => {
+                        setActiveSectionId(sec.id);
+                        setHighlightedChangeId(null);
+                      }}
+                      onJumpToChange={() => jumpToChange(sec.id, "left")}
                     />
                   ))}
                 </div>
@@ -451,7 +496,12 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
                       side="right"
                       sec={sec}
                       isActive={activeSectionId === sec.id}
-                      onClick={() => setActiveSectionId(sec.id)}
+                      isHighlightedChange={highlightedChangeId === sec.id}
+                      onClick={() => {
+                        setActiveSectionId(sec.id);
+                        setHighlightedChangeId(null);
+                      }}
+                      onJumpToChange={() => jumpToChange(sec.id, "right")}
                     />
                   ))}
                 </div>
@@ -506,7 +556,7 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
                 )}
 
                 {/* Messages Feed */}
-                <div className="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
+                <div ref={chatMessagesRef} className="flex-1 overflow-y-auto p-3 space-y-3 text-xs">
                   {chatMessages.length === 0 && (
                     <div className="text-center py-8 text-slate-400 text-xs italic px-2">
                       Ask questions to analyze obligations, liability changes, and risk shifts between both versions.
@@ -516,13 +566,17 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
                   {chatMessages.map((msg) => (
                     <div key={msg.id} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
                       <div
-                        className={`max-w-[95%] rounded-xl px-3 py-2 leading-relaxed text-xs ${
+                        className={`max-w-[95%] rounded-xl px-3.5 py-2.5 leading-relaxed text-xs ${
                           msg.role === "user"
-                            ? "bg-slate-900 text-white"
-                            : "bg-slate-50 border border-slate-200 text-slate-900"
+                            ? "bg-slate-900 text-white font-medium"
+                            : "bg-slate-50 border border-slate-200 text-slate-900 shadow-2xs"
                         }`}
                       >
-                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                        {msg.role === "user" ? (
+                          <div className="whitespace-pre-wrap">{msg.content}</div>
+                        ) : (
+                          <FormattedMessage content={msg.content} />
+                        )}
                       </div>
 
                       {/* Verified Citations from Both Documents */}
@@ -541,9 +595,9 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
                                     (s.leftText && s.leftText.includes(c.quote)) ||
                                     (s.rightText && s.rightText.includes(c.quote))
                                 );
-                                if (matchingSec) scrollToSection(matchingSec.id);
+                                if (matchingSec) jumpToChange(matchingSec.id);
                               }}
-                              title="Click to jump to this clause in the comparison viewer"
+                              title="Click to jump and highlight this clause in the comparison viewer"
                             >
                               <span className="font-semibold text-emerald-800 inline-flex items-center gap-1">
                                 <CheckIcon className="w-3 h-3 text-emerald-600 shrink-0" />
@@ -565,8 +619,6 @@ export function ContractComparison({ documents, initialLeftId, initialRightId }:
                       <span className="text-[11px]">Comparing provisions and verifying quotes…</span>
                     </div>
                   )}
-
-                  <div ref={chatEndRef} />
                 </div>
 
                 {chatError && (
@@ -613,12 +665,16 @@ function SideBySideClauseCard({
   side,
   sec,
   isActive,
+  isHighlightedChange,
   onClick,
+  onJumpToChange,
 }: {
   side: "left" | "right";
   sec: MatchedSectionComparison;
   isActive: boolean;
+  isHighlightedChange: boolean;
   onClick: () => void;
+  onJumpToChange: () => void;
 }) {
   const text = side === "left" ? sec.leftText : sec.rightText;
 
@@ -648,7 +704,9 @@ function SideBySideClauseCard({
       id={`${side}-${sec.id}`}
       onClick={onClick}
       className={`rounded-lg border p-3.5 transition-all text-xs font-serif leading-relaxed ${
-        isActive
+        isHighlightedChange
+          ? "ring-3 ring-amber-400 border-amber-400 bg-amber-50/15 shadow-sm"
+          : isActive
           ? "ring-2 ring-indigo-500/40 border-indigo-400 bg-white shadow-sm"
           : "border-zinc-200 bg-white hover:border-zinc-300"
       }`}
@@ -687,7 +745,7 @@ function SideBySideClauseCard({
         <div className="font-sans mb-3 rounded-lg border border-amber-200 bg-amber-50/70 p-2.5 text-xs text-amber-950 space-y-2">
           <div className="flex items-center justify-between">
             <span className="font-semibold text-amber-900 flex items-center gap-1.5 text-[11px]">
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
+              <span className={`w-2 h-2 rounded-full ${isHighlightedChange ? "bg-amber-600 animate-ping" : "bg-amber-500"}`} />
               <span>{side === "left" ? "Original Version (Prior Language)" : "Revised Version (Updated Language)"}</span>
             </span>
             {(deletedSnippet || insertedSnippet) && (
@@ -695,22 +753,32 @@ function SideBySideClauseCard({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  const target = document.getElementById(`diff-target-${side}-${sec.id}`);
-                  if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+                  onJumpToChange();
                 }}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 transition cursor-pointer shadow-2xs"
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-semibold transition cursor-pointer shadow-xs ${
+                  isHighlightedChange
+                    ? "bg-amber-500 text-white ring-2 ring-amber-400 font-bold"
+                    : "bg-white hover:bg-amber-100 text-amber-900 border border-amber-300"
+                }`}
               >
-                <span>Jump to change</span>
-                <span className="text-[10px]">↓</span>
+                <span>{isHighlightedChange ? "Highlighted" : "Jump to change"}</span>
+                <span className="text-[10px]">{isHighlightedChange ? "★" : "↓"}</span>
               </button>
             )}
           </div>
 
           {/* Quick inline preview of what was removed or added */}
           {(deletedSnippet || insertedSnippet) && (
-            <div className="text-[11px] font-mono bg-white/90 p-2 rounded border border-amber-200/80 text-zinc-800">
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                onJumpToChange();
+              }}
+              className="text-[11px] font-mono bg-white/90 p-2 rounded border border-amber-200/80 text-zinc-800 cursor-pointer hover:border-amber-400 transition"
+              title="Click to jump and highlight this change in the contract text below"
+            >
               <span className="text-zinc-500 font-sans text-[10px] block mb-1 font-semibold uppercase">
-                {side === "left" ? "Removed / Replaced Language:" : "Added / Replacement Language:"}
+                {side === "left" ? "Removed / Replaced Language (Click to highlight):" : "Added / Replacement Language (Click to highlight):"}
               </span>
               {side === "left" ? (
                 <span className="line-through decoration-red-600 bg-red-100 text-red-950 font-medium px-1.5 py-0.5 rounded inline-block">
@@ -763,7 +831,11 @@ function SideBySideClauseCard({
                         <mark
                           key={idx}
                           id={isFirst ? `diff-target-left-${sec.id}` : undefined}
-                          className="bg-red-100 text-red-950 line-through decoration-red-600 decoration-2 font-medium px-1 py-0.5 rounded border border-red-300 inline scroll-mt-24 shadow-2xs"
+                          className={
+                            isHighlightedChange
+                              ? "citation-highlight-active inline bg-amber-200 text-red-950 font-bold px-1.5 py-0.5 rounded border border-red-500 ring-2 ring-amber-400 shadow-md line-through decoration-red-600 decoration-2 scroll-mt-28"
+                              : "bg-red-100 text-red-950 line-through decoration-red-600 decoration-2 font-medium px-1 py-0.5 rounded border border-red-300 inline scroll-mt-24 shadow-2xs"
+                          }
                           title="Original text removed or changed in revision"
                         >
                           {token.text}
@@ -787,7 +859,11 @@ function SideBySideClauseCard({
                         <mark
                           key={idx}
                           id={isFirst ? `diff-target-right-${sec.id}` : undefined}
-                          className="bg-emerald-100 text-emerald-950 underline decoration-emerald-600 decoration-2 font-medium px-1 py-0.5 rounded border border-emerald-300 inline scroll-mt-24 shadow-2xs"
+                          className={
+                            isHighlightedChange
+                              ? "citation-highlight-active inline bg-amber-200 text-emerald-950 font-bold px-1.5 py-0.5 rounded border border-emerald-500 ring-2 ring-amber-400 shadow-md underline decoration-emerald-600 decoration-2 scroll-mt-28"
+                              : "bg-emerald-100 text-emerald-950 underline decoration-emerald-600 decoration-2 font-medium px-1 py-0.5 rounded border border-emerald-300 inline scroll-mt-24 shadow-2xs"
+                          }
                           title="New text added or modified in revision"
                         >
                           {token.text}
@@ -806,9 +882,13 @@ function SideBySideClauseCard({
           <div
             className={`whitespace-pre-wrap leading-relaxed ${
               isDeleted
-                ? "line-through decoration-red-500/70 text-zinc-600 bg-red-50/40 p-2.5 rounded border border-red-200"
+                ? isHighlightedChange
+                  ? "citation-highlight-active line-through decoration-red-500 text-red-950 bg-amber-100 p-2.5 rounded border-2 border-amber-500 ring-2 ring-amber-400 font-medium"
+                  : "line-through decoration-red-500/70 text-zinc-600 bg-red-50/40 p-2.5 rounded border border-red-200"
                 : isAdded
-                ? "underline decoration-emerald-500/70 text-zinc-900 bg-emerald-50/40 p-2.5 rounded border border-emerald-200"
+                ? isHighlightedChange
+                  ? "citation-highlight-active underline decoration-emerald-600 text-emerald-950 bg-amber-100 p-2.5 rounded border-2 border-amber-500 ring-2 ring-amber-400 font-medium"
+                  : "underline decoration-emerald-500/70 text-zinc-900 bg-emerald-50/40 p-2.5 rounded border border-emerald-200"
                 : "text-zinc-800"
             }`}
           >

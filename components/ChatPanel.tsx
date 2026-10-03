@@ -82,15 +82,22 @@ export function ChatPanel({ documentId, documentName, onSelectCitation }: ChatPa
   const [agentAnswer, setAgentAnswer] = useState<string | null>(null);
   const [agentCitations, setAgentCitations] = useState<MessageCitation[]>([]);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const agentContainerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = mode === "chat" ? chatContainerRef.current : agentContainerRef.current;
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth",
+      });
+    }
   };
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, streamingText, agentSteps]);
+  }, [messages.length, streamingText, agentSteps.length, mode]);
 
   // Load chats for document
   const loadChats = useCallback(async () => {
@@ -412,7 +419,7 @@ export function ChatPanel({ documentId, documentName, onSelectCitation }: ChatPa
       {/* Main Body */}
       {mode === "chat" ? (
         /* STANDARD CHAT VIEW */
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
           {loadingHistory && (
             <div className="text-center py-8 text-xs text-slate-500">Loading conversation history…</div>
           )}
@@ -574,11 +581,10 @@ export function ChatPanel({ documentId, documentName, onSelectCitation }: ChatPa
             </div>
           )}
 
-          <div ref={messagesEndRef} />
         </div>
       ) : (
         /* AGENTIC RESEARCH VIEW (PART C OPTION 2) */
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div ref={agentContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
           <div className="rounded-lg bg-slate-900 text-white p-3.5 text-xs space-y-1">
             <div className="font-semibold flex items-center justify-between">
               <span className="flex items-center gap-1.5">
@@ -730,7 +736,6 @@ export function ChatPanel({ documentId, documentName, onSelectCitation }: ChatPa
             </div>
           )}
 
-          <div ref={messagesEndRef} />
         </div>
       )}
 
