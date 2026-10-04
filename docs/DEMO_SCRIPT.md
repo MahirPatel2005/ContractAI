@@ -4,6 +4,7 @@
 ---
 
 ### Video Overview
+- **YouTube Video**: [https://youtu.be/ZwOz_qI4fVE](https://youtu.be/ZwOz_qI4fVE)
 - **Target Duration**: 3:30 – 4:30 minutes
 - **Recording Mode**: Full screen browser recording at 1080p, with clear audio narration
 - **Audience**: Legal engineers, enterprise reviewers, technical evaluators

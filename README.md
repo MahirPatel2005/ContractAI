@@ -8,7 +8,8 @@ ContractAI is an enterprise-grade legal contract analysis and redlining applicat
 
 - **GitHub Repository**: [https://github.com/MahirPatel2005/ContractAI](https://github.com/MahirPatel2005/ContractAI)
 - **Live Deployed Application**: [https://contract-ai-seven.vercel.app](https://contract-ai-seven.vercel.app) *(or self-host via [Deployment Guide](docs/DEPLOYMENT.md))*
-- **3–5 Minute Demo Video Script**: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) *(step-by-step cue sheet and narration for recording)*
+- **Demo Video Walkthrough**: [https://youtu.be/ZwOz_qI4fVE](https://youtu.be/ZwOz_qI4fVE)
+- **3–5 Minute Demo Video Script**: [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) *(step-by-step cue sheet and narration)*
 - **Implementation Note**: [docs/IMPLEMENTATION_NOTE.md](docs/IMPLEMENTATION_NOTE.md) *(half-page note on verification, 150-page documents, Part C, and roadmap)*
 - **150-Page Contract Test Suite**: [tests/large-document.test.ts](tests/large-document.test.ts) *(monotonic offset indexing, multi-page boundary matching, and sub-10ms verification)*
 
@@ -40,7 +41,7 @@ Multi-round autonomous legal researcher invoking dynamic contract inspection too
 - [x] **Live deployed application**: Vercel & Docker ready with full instructions ([DEPLOYMENT.md](docs/DEPLOYMENT.md)).
 - [x] **README screenshots**: Real interface screenshots for upload, Q&A, citation highlights, comparison, and redlining.
 - [x] **Local setup instructions**: Verified with Postgres, Prisma migrations, and dev server.
-- [x] **3–5 minute demo video script**: Comprehensive walkthrough script with timings ([DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md)).
+- [x] **Demo video walkthrough**: [https://youtu.be/ZwOz_qI4fVE](https://youtu.be/ZwOz_qI4fVE) *(script & cues: [DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md))*.
 - [x] **Implementation note**: Detailed half-page note on verification, 150-page scaling, and Part C ([IMPLEMENTATION_NOTE.md](docs/IMPLEMENTATION_NOTE.md)).
 - [x] **No API keys committed**: `.env.local` ignored; zero secrets in git history.
 - [x] **Parts A, B and selected Part C tested**: 26 automated unit/integration tests passing.
