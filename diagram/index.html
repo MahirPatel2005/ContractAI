@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContractAI - Architecture & System Flowcharts</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      margin: 0;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+    p.subtitle {
+      color: #64748b;
+      font-size: 15px;
+      margin-top: 0;
+      margin-bottom: 40px;
+    }
+    .card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 28px;
+      margin-bottom: 36px;
+      box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05);
+    }
+    .card h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-top: 0;
+      margin-bottom: 8px;
+      color: #1e293b;
+    }
+    .card p {
+      color: #475569;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .mermaid-wrapper {
+      background: #fdfdfd;
+      border: 1px solid #f1f5f9;
+      border-radius: 12px;
+      padding: 20px;
+      overflow-x: auto;
+      text-align: center;
+    }
+    .steps {
+      margin-top: 20px;
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 16px 20px;
+    }
+    .steps ol {
+      margin: 0;
+      padding-left: 20px;
+      color: #334155;
+      font-size: 13px;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>ContractAI — System Flowcharts</h1>
+    <p class="subtitle">Interactive visual workflows explaining how ContractAI works in the backend, how user inputs travel to the LLM, and how verified responses are streamed.</p>
+
+    <!-- Flowchart 1 -->
+    <div class="card">
+      <h2>1. System Overview & Backend Flowchart</h2>
+      <p>End-to-end flow from user typing a question to retrieval, Gemini analysis, zero-trust verification, and live streaming.</p>
+      <div class="mermaid-wrapper">
+        <pre class="mermaid">
+flowchart TD
+    A["👤 User Types Question<br/>e.g., 'What is the liability cap?'"] --> B["💻 Frontend UI (ChatPanel)"]
+    B --> C["⚙️ Backend API Route<br/>(/api/chats/[id]/messages)"]
+    C --> D["🔍 Keyword Search Engine<br/>Finds relevant clauses in the contract"]
+    D --> E["📦 Prompt Builder<br/>Combines: System Rules + Contract Text + Question"]
+    E --> F["🧠 Google Gemini LLM<br/>Reads clauses & drafts candidate answer"]
+    F --> G["🛡️ Citation Verifier<br/>Checks if quotes exist in the real document"]
+    G -->|Quote Exists| H["✅ Verified Citation<br/>Finds exact page number & coordinates"]
+    G -->|Quote Not Found| I["❌ Rejected Quote<br/>Discards hallucinated reference"]
+    H --> J["⚡ Live Stream (SSE)<br/>Streams text to browser in real-time"]
+    J --> K["📱 Chat UI Displays Answer<br/>Clickable citation badges"]
+    K -->|User clicks badge| L["🟡 PDF Viewer Highlights Clause<br/>Jumps to page & draws glowing yellow box"]
+        </pre>
+      </div>
+    </div>
+
+    <!-- Flowchart 2 -->
+    <div class="card">
+      <h2>2. Document Ingestion Flowchart</h2>
+      <p>How contracts (PDF and Word DOCX) are verified, extracted, chunked, and indexed.</p>
+      <div class="mermaid-wrapper">
+        <pre class="mermaid">
+flowchart TD
+    A["👤 User Drops Contract File<br/>(PDF or Word DOCX)"] --> B["📤 Upload Endpoint<br/>(POST /api/documents/upload)"]
+    B --> C{"🛡️ Security Checks"}
+    C -->|Size > 50MB or Bad File| D["❌ Reject Upload"]
+    C -->|Valid PDF or DOCX| E["💾 Save Raw File to Disk"]
+    E --> F["📝 Create Database Record<br/>Status: 'Processing'"]
+    F --> G{"File Type?"}
+    G -->|PDF| H["📄 PDF Text Extractor<br/>Extracts text + records word (x, y) coordinates"]
+    G -->|DOCX| I["📑 Word Extractor<br/>Unzips document.xml & extracts paragraphs"]
+    H & I --> J["✂️ Document Chunker<br/>Splits into 1,000-character blocks with overlap"]
+    J --> K["🔍 Inverted Keyword Indexer<br/>Builds fast search index"]
+    K --> L["✅ Mark Document 'Ready'"]
+    L --> M["🖥️ Opens in Document Workspace"]
+        </pre>
+      </div>
+    </div>
+
+    <!-- Flowchart 3 -->
+    <div class="card">
+      <h2>3. User Input to LLM & Response Flowchart</h2>
+      <p>How user prompts are protected against prompt injection and sent to Google Gemini.</p>
+      <div class="mermaid-wrapper">
+        <pre class="mermaid">
+flowchart TD
+    A["👤 User Types Question in Chat"] --> B["🖱️ Clicks 'Send'"]
+    B --> C["🌐 POST /api/chats/[id]/messages"]
+    C --> D["💾 Save Question in Database"]
+    C --> E["🔍 Search Contract Index<br/>Finds top matching clauses"]
+    E --> F["🛡️ Assemble Protected Prompt<br/>Puts contract text inside &lt;evidence&gt; tags"]
+    F --> G["📋 Add LLM Instructions<br/>(Normal sentence case, selective bolding, quotes only)"]
+    G --> H{"Gemini API Key?"}
+    H -->|Yes| I["🧠 Google Gemini LLM<br/>Generates legal reasoning + candidate quotes"]
+    H -->|No / Offline| J["⚙️ Deterministic Legal Engine<br/>Synthesizes structured answer"]
+    I & J --> K["⚡ Stream Words to Browser (SSE)"]
+    K --> L["🛡️ Verify Quotes in Background"]
+    L --> M["✅ Render Final Answer in Chat"]
+        </pre>
+      </div>
+    </div>
+
+    <!-- Flowchart 4 -->
+    <div class="card">
+      <h2>4. Zero-Trust Citation Verification Flowchart</h2>
+      <p>How quotes are deterministically checked to guarantee zero hallucinated citations.</p>
+      <div class="mermaid-wrapper">
+        <pre class="mermaid">
+flowchart TD
+    A["🧠 LLM Returns Candidate Quote<br/>e.g., 'thirty-day (30-day) written notice'"] --> B["🛡️ Zero-Trust Verification Engine"]
+    B --> C{"Does quote exist in real document?"}
+    C -->|No Match Anywhere| D["❌ REJECT QUOTE<br/>Blocks AI hallucination"]
+    C -->|Exact / Normalized Match| E["📍 Find Exact Character Position<br/>Characters 3,892 to 3,925"]
+    E --> F{"Appears multiple times?"}
+    F -->|Repeated Text| G["🎯 Disambiguate Occurrence<br/>Picks quote from section AI was reading"]
+    F -->|Unique Text| H["✅ Confirmed Offset"]
+    G --> H
+    H --> I["📄 True Page Number Lookup (e.g., Page 4)"]
+    I --> J["📐 Calculate PDF Canvas Coordinates (x, y, w, h)"]
+    J --> K["💳 Display 'Verified Clause • Page 4' Badge"]
+    K -->|User clicks badge| L["🚀 Viewer Jumps to Page 4 & Pulses Glowing Yellow Box"]
+        </pre>
+      </div>
+    </div>
+
+    <!-- Flowchart 5 -->
+    <div class="card">
+      <h2>5. Advanced Features: Agentic Deep Research & Redlining</h2>
+      <p>Multi-step autonomous ReAct agent loop and native WordprocessingML tracked changes.</p>
+      <div class="mermaid-wrapper">
+        <pre class="mermaid">
+flowchart TD
+    A["👤 User Enters Redline Request<br/>e.g., 'Increase termination notice from 30 to 60 days'"] --> B["⚙️ Propose Endpoint (POST /api/redline)"]
+    B --> C["🔍 AI Locates Targeted Clause<br/>Finds exact text: 'thirty-day (30-day)'"]
+    C --> D["✏️ Proposes Exact Replacement<br/>Replacement text: 'sixty-day (60-day)'"]
+    D --> E["🛡️ Verifies Target Exists in Document<br/>Ensures surrounding text remains 100% untouched"]
+    E --> F["🖥️ Displays Visual Diff Preview in Browser<br/>~~thirty-day (30-day)~~ in RED<br/><u>sixty-day (60-day)</u> in GREEN"]
+    F --> G["📥 User Clicks 'Download Redlined DOCX'"]
+    G --> H["⚙️ Apply Endpoint (POST /api/redline/apply)"]
+    H --> I["📂 Unzips Word Document (JSZip)<br/>Opens word/document.xml"]
+    I --> J["🏷️ Injects Native Tracked Changes Markup:<br/>• &lt;w:del&gt; for deleted words<br/>• &lt;w:ins&gt; for inserted words<br/>• Adds author='ContractAI' and date"]
+    J --> K["📦 Re-packages Clean .docx File"]
+    K --> L["💾 Download 'redlined-contract.docx'"]
+    L --> M["📑 Open in Microsoft Word or LibreOffice<br/>Native 'Accept' and 'Reject' buttons work instantly!"]
+        </pre>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'neutral',
+      flowchart: {
+        useMaxWidth: true,
+        htmlLabels: true,
+        curve: 'basis'
+      }
+    });
+  </script>
+</body>
+</html>
