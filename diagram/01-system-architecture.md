@@ -1,131 +1,69 @@
-# System Architecture & Backend Data Flow
+# 1. System Overview & Backend Flowchart
 
-This document details the end-to-end architecture of **ContractAI**, illustrating how requests flow through the Next.js fullstack application, how the backend orchestrates retrieval, how the Large Language Model (Gemini 2.5) generates candidate legal reasoning, and how the verification engine validates citations before streaming responses to the user.
+This flowchart shows the complete step-by-step path of how ContractAI works in the backend—from the moment a user asks a question to when the verified answer appears on screen.
 
 ---
 
-## 1. High-Level Architecture Diagram
+## Visual Flowchart
+
+![1. System Overview & Backend Flowchart](./01-system-architecture.svg)
+
+---
+
+## Mermaid Diagram Code
 
 ```mermaid
-graph TD
-    subgraph Client["Frontend Client (Next.js 15 App Router)"]
-        UI["User Interface (Workspace / Comparison / Redlining)"]
-        Chat["ChatPanel & MultiDocumentChat (React Hooks + SSE)"]
-        DocViewer["DocumentViewer (PDF.js Canvas + SVG Highlight Layer)"]
-    end
+flowchart TD
+    %% Step 1: Input
+    A["👤 User Types Question<br/>e.g., 'What is the liability cap?'"] --> B["💻 Frontend UI (ChatPanel)<br/>Captures input & opens live stream"]
+    
+    %% Step 2: Backend API
+    B --> C["⚙️ Backend API Route<br/>(/api/chats/[id]/messages)"]
+    C --> D["💾 Save User Message<br/>Stored in Database via Prisma"]
 
-    subgraph API["Next.js Server API Layer (Node.js Runtime)"]
-        RouteDoc["/api/documents/upload & /api/documents"]
-        RouteChat["/api/chats/[id]/messages (SSE Streaming)"]
-        RouteAgent["/api/agent/research (Autonomous ReAct Loop)"]
-        RouteCompare["/api/compare/chat & /api/compare/report"]
-        RouteRedline["/api/redline & /api/redline/apply"]
-    end
+    %% Step 3: Retrieval
+    C --> E["🔍 Keyword Search Engine<br/>Scans document and finds top relevant clauses"]
+    E --> F["📄 Relevant Contract Chunks<br/>Extracts exact text with character positions"]
 
-    subgraph RetrievalEngine["Retrieval & Storage Engine"]
-        Storage["Local Disk Storage (.storage/documents/)"]
-        Prisma["Prisma ORM Client"]
-        SQLite[("SQLite / PostgreSQL Database")]
-        BM25["Inverted Keyword Search Index (BM25-style scoring)"]
-        Chunker["Sliding-Window Document Chunker"]
-    end
+    %% Step 4: LLM Prompting
+    F --> G["📦 Prompt Builder<br/>Combines: System Rules + Contract Text + Question"]
+    G --> H["🧠 Google Gemini LLM<br/>Reads contract clauses & writes candidate answer"]
 
-    subgraph AI["Artificial Intelligence Layer"]
-        PromptBuilder["Prompt Builder (Untrusted Evidence Enclosure)"]
-        Gemini["Google Gemini 2.5 Flash / Pro API"]
-        FallbackEngine["Deterministic Legal Synthesis Engine"]
-    end
+    %% Step 5: Verification
+    H --> I["🛡️ Citation Verifier<br/>Checks if quotes exist in the real document"]
+    I -->|Quote Matches Real Text| J["✅ Verified Citation<br/>Resolves true page number & coordinates"]
+    I -->|Quote Does Not Exist| K["❌ Rejected Quote<br/>Discards hallucinated reference"]
 
-    subgraph Verification["Zero-Trust Citation Verification"]
-        QuoteMatcher["Exact Verbatim Text & Punctuation Matcher"]
-        OffsetResolver["Document Offset & Page Boundary Mapper"]
-        CoordEngine["PDF Canvas Coordinate Bounding-Box Engine"]
-    end
+    %% Step 6: Output & Streaming
+    J --> L["💾 Save Assistant Answer<br/>Updates database with verified response"]
+    L --> M["⚡ Live Stream (Server-Sent Events)<br/>Streams text to browser in real-time"]
+    M --> N["📱 Chat UI Displays Answer<br/>Clean ChatGPT-style text with clickable citation cards"]
+    
+    %% Step 7: Visual Highlighting
+    N -->|User clicks citation| O["🟡 PDF Viewer Highlights Clause<br/>Jumps to page and draws glowing yellow box"]
 
-    %% Flow connections
-    UI -->|User Question / Action| Chat
-    Chat -->|POST Request / SSE Connection| RouteChat
-    RouteChat --> Prisma
-    Prisma --> SQLite
-    RouteChat --> BM25
-    BM25 --> Chunker
-    Chunker --> PromptBuilder
-    PromptBuilder -->|System Prompt + Structured Evidence| Gemini
-    Gemini -.->|Fallback if no API key| FallbackEngine
-    Gemini -->|Candidate JSON Answer + Citations| Verification
-    Verification --> QuoteMatcher
-    QuoteMatcher --> OffsetResolver
-    OffsetResolver --> CoordEngine
-    Verification -->|Verified Quotes + Offsets| RouteChat
-    RouteChat -->|Server-Sent Events: status, delta, final| Chat
-    Chat -->|Click Citation| DocViewer
-    DocViewer -->|Draw Bounding Rectangles| UI
+    %% Styling
+    classDef userNode fill:#e0e7ff,stroke:#4338ca,stroke-width:2px,color:#1e1b4b;
+    classDef apiNode fill:#f1f5f9,stroke:#475569,stroke-width:2px,color:#0f172a;
+    classDef llmNode fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f;
+    classDef verifyNode fill:#d1fae5,stroke:#059669,stroke-width:2px,color:#064e3b;
+    classDef uiNode fill:#ecfdf5,stroke:#10b981,stroke-width:2px,color:#064e3b;
+
+    class A,B userNode;
+    class C,D,E,F,G apiNode;
+    class H llmNode;
+    class I,J,K verifyNode;
+    class L,M,N,O uiNode;
 ```
 
 ---
 
-## 2. End-to-End Sequence Diagram: From User Input to Rendered Answer
+## Step-by-Step Breakdown
 
-This sequence diagram illustrates what happens the moment a user clicks **Send** in the Contract Chat:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as User (Lawyer / Reviewer)
-    participant UI as ChatPanel (Browser)
-    participant API as POST /api/chats/[id]/messages
-    participant DB as Prisma / SQLite DB
-    participant Engine as Retrieval Engine (keyword.ts)
-    participant LLM as Google Gemini 2.5 (gemini.ts)
-    participant Verifier as Citation Verifier (verifier.ts)
-    participant Viewer as DocumentViewer (PDF Canvas)
-
-    User->>UI: Types "What is the liability cap and financial limit?"
-    UI->>API: HTTP POST { question }
-    Note over API: Rate limit check & input validation (Zod)
-
-    API->>DB: INSERT INTO Message (role: "user")
-    API->>DB: INSERT INTO Message (role: "assistant", content: "")
-    API-->>UI: Establish SSE connection (text/event-stream)
-    API-->>UI: data: {"type":"start", "assistantMessageId":"..."}
-    API-->>UI: data: {"type":"status", "step":"locating", "message":"Scanning document..."}
-
-    API->>DB: Load document text & metadata
-    API->>Engine: retrieveChunks(docs, question)
-    Note over Engine: Tokenize question, filter stopwords,<br/>score text chunks, select top-k candidates
-    Engine-->>API: Returns relevant text chunks with start/end offsets
-
-    API-->>UI: data: {"type":"status", "step":"analyzing", "message":"Synthesizing legal reasoning..."}
-    API->>LLM: generateContent({ system: ANSWER_SYSTEM_PROMPT, contents: [Prompt + Evidence] })
-    Note over LLM: Evaluates evidence within <evidence> tags.<br/>Produces JSON: { answer, citations: [{quote, documentId}] }
-    LLM-->>API: Raw JSON response string
-
-    API-->>UI: Stream formatted text chunks (Markdown)
-    API->>Verifier: verifyCitation(evidence, candidateQuote)
-    Note over Verifier: Zero-Trust Verification:<br/>1. Verbatim character search in document text<br/>2. Disambiguate repeated occurrences<br/>3. Compute exact byte offsets & page numbers
-    Verifier-->>API: Verified citations array with pageNumber & offsets
-
-    API->>DB: UPDATE Message SET content = finalAnswer, citations = [...]
-    API-->>UI: data: {"type":"final", "answer": "...", "citations": [...]}
-    API-->>UI: Close SSE stream
-
-    Note over UI: UI renders Markdown with selective bolding (ChatGPT style)
-    User->>UI: Clicks "Verified Clause • Page 4"
-    UI->>Viewer: onSelectCitation({ pageNumber: 4, startOffset, endOffset })
-    Viewer->>Viewer: Jump to Page 4 and apply glowing pulse animation (citation-highlight-active)
-```
-
----
-
-## 3. Core Backend Components
-
-| Component | File Path | Primary Responsibility |
-| :--- | :--- | :--- |
-| **Chat Message Route** | [route.ts](file:///Users/mahir/Downloads/contract-ai/app/api/chats/%5Bid%5D/messages/route.ts) | Validates input, manages cancellation tokens, drives SSE streaming pipeline, orchestrates DB writes. |
-| **System Prompts** | [prompts.ts](file:///Users/mahir/Downloads/contract-ai/lib/ai/prompts.ts) | Enforces normal-weight prose, surgical bolding, zero hallucinated facts, and JSON schema constraints. |
-| **Retrieval Engine** | [keyword.ts](file:///Users/mahir/Downloads/contract-ai/lib/retrieval/keyword.ts) | BM25-inspired keyword retrieval; chunks text with 200-character overlaps and ranks passages. |
-| **Gemini Client** | [gemini.ts](file:///Users/mahir/Downloads/contract-ai/lib/ai/gemini.ts) | Low-level HTTP client calling Google Generative Language API (`gemini-2.5-flash` or `gemini-2.5-pro`). |
-| **Zero-Trust Verifier** | [verifier.ts](file:///Users/mahir/Downloads/contract-ai/lib/citations/verifier.ts) | Authority for quote validity; locates character offsets, normalizes whitespace, rejects invalid quotes. |
-| **DOCX OpenXML Engine** | [docxXml.ts](file:///Users/mahir/Downloads/contract-ai/lib/redline/docxXml.ts) | Direct zip and XML manipulation; injects native `<w:del>` and `<w:ins>` tracked changes into Word documents. |
-| **Comparison Engine** | [compare.ts](file:///Users/mahir/Downloads/contract-ai/lib/comparison/compare.ts) | Structural clause diffing, risk shifts, party advantage classification, and word-level token diffing. |
-| **Agentic Loop** | [agent.ts](file:///Users/mahir/Downloads/contract-ai/lib/ai/agent.ts) | Multi-step autonomous research loop using ReAct pattern with hard execution limits. |
+1. **User Types Input**: The user enters a question into the chat panel in their browser.
+2. **Backend Receives Request**: Next.js route handler validates the request and immediately saves the question in the database.
+3. **Smart Search**: The backend searches the indexed contract text to find the most relevant sections and clauses.
+4. **Sent to LLM**: The contract clauses, the user's question, and strict legal formatting rules are packaged and sent to Google Gemini LLM.
+5. **Zero-Trust Verification**: When the LLM replies with quotes, the backend independently verifies that every quote exists character-for-character in the original contract.
+6. **Streaming Response**: The verified answer and clickable citation badges are streamed back to the browser in real time.
+7. **Document Highlighting**: When the user clicks any citation, the document viewer smoothly jumps to that exact page and highlights the clause in glowing yellow.

@@ -1,121 +1,72 @@
-# Document Ingestion, Parsing & Coordinate Mapping Pipeline
+# 2. Document Ingestion Flowchart
 
-This document explains how user-uploaded contracts (PDF and DOCX) are ingested, validated, parsed into character streams, mapped to physical page coordinates, chunked, and indexed for instantaneous retrieval.
+This flowchart shows how contracts (PDF and Word documents) are uploaded, checked for security, converted into searchable text, and indexed for fast search.
 
 ---
 
-## 1. Document Ingestion Flowchart
+## Visual Flowchart
+
+![2. Document Ingestion Flowchart](./02-document-ingestion-pipeline.svg)
+
+---
+
+## Mermaid Diagram Code
 
 ```mermaid
 flowchart TD
-    A["User Uploads Contract File<br/>(Drag-and-Drop PDF / DOCX)"] --> B["Upload Endpoint<br/>(POST /api/documents/upload)"]
+    %% 1. Upload
+    A["👤 User Drops Contract File<br/>(PDF or Word DOCX)"] --> B["📤 Upload Endpoint<br/>(POST /api/documents/upload)"]
 
-    subgraph SecurityValidation["Security & Format Validation"]
-        B --> C["Rate Limiting Check<br/>(max 20 uploads / 10 min)"]
-        C --> D["File Size Guard<br/>(max 50 MB limit)"]
-        D --> E["Magic Byte Header Sniffing<br/>(%PDF-1.x or PK\x03\x04)"]
-        E -->|Invalid or Executable| F["HTTP 400 Bad Request<br/>Reject Upload"]
-    end
+    %% 2. Security Check
+    B --> C{"🛡️ Security Checks"}
+    C -->|Size > 50MB or Bad File| D["❌ Reject Upload<br/>Show error message"]
+    C -->|Valid PDF or DOCX| E["💾 Save Raw File to Disk<br/>(.storage/documents/)"]
 
-    E -->|Valid Contract| G["Persist Raw File to Disk<br/>(.storage/documents/[docId].[ext])"]
-    G --> H["Create DB Record in Prisma<br/>(status: 'processing')"]
+    %% 3. Status
+    E --> F["📝 Create Database Record<br/>Status set to 'Processing'"]
 
-    subgraph ParsingEngine["Text & Coordinate Extraction Engine"]
-        H --> I{"Determine File Type"}
-        
-        I -->|PDF Document| J["PDF Extraction (pdf.js)<br/>lib/documents/pdf.ts"]
-        J --> J1["Extract Plaintext Page by Page"]
-        J --> J2["Record Page Offsets<br/>pageBoundaries: [{page, startOffset, endOffset}]"]
-        J --> J3["Extract Glyph Coordinates<br/>boxes: [{char, x, y, width, height}]"]
-
-        I -->|DOCX Document| K["DOCX Extraction (OpenXML)<br/>lib/documents/docx.ts"]
-        K --> K1["Unzip word/document.xml with JSZip"]
-        K --> K2["Extract Text Runs (<w:t>) & Paragraphs (<w:p>)"]
-        K --> K3["Estimate Page Boundaries via Paragraph Word Count"]
-    end
-
-    J1 & J2 & J3 --> L["Aggregate Document Text & Page Map"]
-    K1 & K2 & K3 --> L
-
-    subgraph ChunkingAndIndexing["Sliding-Window Chunking & Keyword Indexing"]
-        L --> M["Sliding-Window Chunker<br/>(lib/documents/chunker.ts)"]
-        M --> M1["Window Size: 1,000 chars<br/>Overlap: 200 chars"]
-        M --> M2["Assign Offsets to Every Chunk<br/>(chunk.startOffset, chunk.endOffset)"]
-        M --> N["Inverted Keyword Indexer<br/>(lib/retrieval/keyword.ts)"]
-        N --> N1["Tokenize, Lowercase & Strip Punctuation"]
-        N --> N2["Filter Common Legal Stopwords"]
-        N --> N3["Build In-Memory Term-Frequency Map"]
-    end
-
-    N3 --> O["Update DB Record in Prisma<br/>(status: 'ready', fullText, pageCount)"]
-    O --> P["Emit Ready Event to Client UI"]
-```
-
----
-
-## 2. Character Offset & Page Coordinate Architecture
-
-A critical architectural feature of ContractAI is that **every single character in a contract has a deterministic global offset `[0 ... N]`**. This enables sub-millisecond conversion between plain text quotes, database search chunks, and physical visual boxes on a PDF canvas.
-
-```mermaid
-graph LR
-    subgraph Stream["Continuous Document Stream (0 to N characters)"]
-        Offset0["Offset 0<br/>'THIS AGREEMENT...'"]
-        Offset1420["Offset 1,420<br/>'Page 2 starts...'"]
-        Offset3890["Offset 3,890<br/>'Section 4. Termination...'"]
-    end
-
-    subgraph PageMap["Page Boundary Map (Document.pageBoundaries)"]
-        P1["Page 1: [0, 1419]"]
-        P2["Page 2: [1420, 3889]"]
-        P3["Page 3: [3890, 6200]"]
-    end
-
-    subgraph Chunks["Retrieval Chunks (keyword.ts)"]
-        C1["Chunk 1: [0, 1000]"]
-        C2["Chunk 2: [800, 1800]"]
-        C3["Chunk 3: [1600, 2600]"]
-    end
-
-    Offset0 --> P1
-    Offset1420 --> P2
-    Offset3890 --> P3
-
-    Offset0 --> C1
-    Offset1420 --> C2
-    Offset3890 --> C3
-```
-
-### Why Character Offsets Matter for Citation Accuracy:
-1. **Zero Guesswork**: The LLM is never allowed to guess page numbers. When the LLM quotes `"thirty (30) days"`, the backend locates the quote at character offset `3,912`.
-2. **Deterministic Page Resolution**: By binary-searching the `pageBoundaries` array, offset `3,912` immediately maps to **Page 3** with mathematical certainty.
-3. **Canvas Highlight Sync**: The PDF viewer matches offset `3,912` to the extracted glyph coordinate boxes `(x, y, w, h)` and paints the glowing yellow-gold bounding rectangle at the exact millimeter on screen.
-
----
-
-## 3. Security & Validation Rules
-
-To prevent malicious uploads and maintain regulatory compliance, the ingestion pipeline enforces strict defense-in-depth rules:
-
-```mermaid
-graph TD
-    UploadReq["Incoming Upload Request"] --> CheckSize{"Content-Length > 50MB?"}
-    CheckSize -->|Yes| ErrSize["Reject: PAYLOAD_TOO_LARGE (413)"]
-    CheckSize -->|No| CheckExt{"File Extension in [.pdf, .docx]?"}
-    CheckExt -->|No| ErrExt["Reject: INVALID_FILE_TYPE (400)"]
-    CheckExt -->|Yes| SniffHeader{"Magic Bytes Valid?"}
+    %% 4. Text Extraction
+    F --> G{"Determine File Type"}
     
-    SniffHeader -->|PDF Header: '%PDF-'| ProcessPDF["Proceed to PDF Parser"]
-    SniffHeader -->|DOCX Header: 'PK\x03\x04'| ProcessDOCX["Proceed to DOCX Parser"]
-    SniffHeader -->|Executable or Disguised File| ErrMagic["Reject: INVALID_FILE_CONTENT (400)"]
+    G -->|PDF File| H["📄 PDF Text Extractor<br/>• Extracts all text page-by-page<br/>• Records character start & end for each page<br/>• Saves (x, y) coordinates for each word"]
+    
+    G -->|DOCX Word File| I["📑 Word DOCX Extractor<br/>• Unzips document.xml<br/>• Extracts paragraphs and text runs<br/>• Estimates page count based on length"]
+
+    %% 5. Chunking
+    H --> J["✂️ Document Chunker<br/>Splits text into 1,000-character blocks<br/>with 200-character overlap"]
+    I --> J
+
+    %% 6. Indexing
+    J --> K["🔍 Inverted Keyword Indexer<br/>• Removes common stopwords<br/>• Builds fast search index for keywords"]
+
+    %% 7. Ready
+    K --> L["✅ Mark Document as 'Ready'<br/>Database updated with full text and page count"]
+    L --> M["🖥️ Document Opens in Workspace<br/>Ready for reading, search, and AI Q&A"]
+
+    %% Styling
+    classDef startNode fill:#e0e7ff,stroke:#4338ca,stroke-width:2px,color:#1e1b4b;
+    classDef checkNode fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f;
+    classDef errNode fill:#fee2e2,stroke:#dc2626,stroke-width:2px,color:#991b1b;
+    classDef processNode fill:#f1f5f9,stroke:#475569,stroke-width:2px,color:#0f172a;
+    classDef successNode fill:#d1fae5,stroke:#059669,stroke-width:2px,color:#064e3b;
+
+    class A,B startNode;
+    class C,G checkNode;
+    class D errNode;
+    class E,F,H,I,J,K processNode;
+    class L,M successNode;
 ```
 
 ---
 
-## 4. Source Code Cross-References
+## Step-by-Step Breakdown
 
-- **Upload Handler**: [app/api/documents/upload/route.ts](file:///Users/mahir/Downloads/contract-ai/app/api/documents/upload/route.ts)
-- **PDF Extraction**: [lib/documents/pdf.ts](file:///Users/mahir/Downloads/contract-ai/lib/documents/pdf.ts)
-- **DOCX Extraction**: [lib/documents/docx.ts](file:///Users/mahir/Downloads/contract-ai/lib/documents/docx.ts)
-- **Chunking Engine**: [lib/documents/chunker.ts](file:///Users/mahir/Downloads/contract-ai/lib/documents/chunker.ts)
-- **Storage Layer**: [lib/documents/storage.ts](file:///Users/mahir/Downloads/contract-ai/lib/documents/storage.ts)
+1. **User Uploads File**: Drag-and-drop a PDF or Word document into the library.
+2. **Security & Validation**: Checks file size (max 50 MB) and verifies the file header so executables or corrupted files are immediately rejected.
+3. **Save to Storage**: The original contract is safely stored in local disk storage.
+4. **Text & Page Coordinate Extraction**:
+   - For **PDF**: Reads text page-by-page and stores word coordinates so highlights can be drawn later.
+   - For **DOCX**: Unzips the Word XML package and extracts text paragraphs.
+5. **Sliding-Window Chunking**: Splits large documents into small 1,000-character chunks with overlap so no sentences or clauses get cut in half.
+6. **Search Indexing**: Prepares a fast search index so questions find matching clauses in milliseconds.
+7. **Ready for Use**: The document is marked "Ready" and opens in the viewer.

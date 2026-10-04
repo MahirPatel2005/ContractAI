@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 880" width="100%" height="auto">
+    
+  <defs>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="120%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#0f172a" flood-opacity="0.08" />
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#64748b" />
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#059669" />
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#dc2626" />
+    </marker>
+  </defs>
+    
+    <!-- Header Title -->
+    <rect width="680" height="880" fill="#f8fafc" rx="16" />
+    <rect x="2" y="2" width="676" height="876" fill="none" stroke="#e2e8f0" stroke-width="2" rx="14" />
+    <text x="340" y="42" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" font-weight="700" fill="#0f172a">2. Document Ingestion Flowchart</text>
+  
+        <line x1="340" y1="144" x2="340" y2="178" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="none" />
+      
+      <g filter="url(#shadow)">
+        <rect x="100" y="80" width="480" height="64" rx="12" fill="#eef2ff" stroke="#6366f1" stroke-width="1.5" />
+      </g>
+      <text x="120" y="106" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#312e81">1. 👤 User Drops Contract File</text>
+      <text x="120" y="126" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="400" fill="#475569">Uploads contract in PDF or Microsoft Word (.docx) format</text>
+    
+        <line x1="340" y1="242" x2="340" y2="276" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="none" />
+      
+      <g filter="url(#shadow)">
+        <rect x="100" y="178" width="480" height="64" rx="12" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5" />
+      </g>
+      <text x="120" y="204" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#78350f">2. 🛡️ Security & Size Check</text>
+      <text x="120" y="224" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="400" fill="#475569">Verifies magic byte header and guards against files over 50MB</text>
+    
+        <line x1="340" y1="340" x2="340" y2="374" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="none" />
+      
+      <g filter="url(#shadow)">
+        <rect x="100" y="276" width="480" height="64" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" />
+      </g>
+      <text x="120" y="302" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#0f172a">3. 💾 Raw File Persisted to Disk</text>
+      <text x="120" y="322" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="400" fill="#475569">Saved securely to local storage directory (.storage/documents/)</text>
+    
+        <line x1="340" y1="438" x2="340" y2="472" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="none" />
+      
+      <g filter="url(#shadow)">
+        <rect x="100" y="374" width="480" height="64" rx="12" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" />
+      </g>
+      <text x="120" y="400" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#0f172a">4. 📝 Database Record Created</text>
+      <text x="120" y="420" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="400" fill="#475569">Document record inserted via Prisma with status = 'processing'</text>
+    
+        <line x1="340" y1="536" x2="340" y2="570" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="none" />
+      
+      <g filter="url(#shadow)">
+        <rect x="100" y="472" width="480" height="64" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" />
+      </g>
+      <text x="120" y="498" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#0f172a">5. 📄 Text & Coordinate Extractor</text>
+      <text x="120" y="518" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="400" fill="#475569">PDF: extracts words with (x, y) coordinates; DOCX: unzips XML runs</text>
+    
+        <line x1="340" y1="634" x2="340" y2="668" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="none" />
+      
+      <g filter="url(#shadow)">
+        <rect x="100" y="570" width="480" height="64" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5" />
+      </g>
+      <text x="120" y="596" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#0f172a">6. ✂️ Sliding-Window Chunker</text>
+      <text x="120" y="616" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="400" fill="#475569">Splits full text into 1,000-char blocks with 200-char overlap</text>
+    
+        <line x1="340" y1="732" x2="340" y2="766" stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="none" />
+      
+      <g filter="url(#shadow)">
+        <rect x="100" y="668" width="480" height="64" rx="12" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" />
+      </g>
+      <text x="120" y="694" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#0f172a">7. 🔍 Inverted Keyword Indexer</text>
+      <text x="120" y="714" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="400" fill="#475569">Strips stopwords and generates high-speed term frequency lookup map</text>
+    
+      <g filter="url(#shadow)">
+        <rect x="100" y="766" width="480" height="64" rx="12" fill="#ecfdf5" stroke="#10b981" stroke-width="1.5" />
+      </g>
+      <text x="120" y="792" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#064e3b">8. ✅ Document Status Set to 'Ready'</text>
+      <text x="120" y="812" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="400" fill="#475569">Database updated with page count; contract opens in Document Workspace</text>
+    
+  </svg>

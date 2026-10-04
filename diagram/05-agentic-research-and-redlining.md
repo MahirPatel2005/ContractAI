@@ -1,126 +1,112 @@
-# Agentic Deep Research & Tracked-Change Redlining Pipelines
+# 5. Agentic Deep Research & Redlining Flowcharts
 
-This document covers the advanced workflows of **ContractAI** (Part C of the PRD): the **Autonomous Agentic Deep Research loop** (Option 2) and the **Native OpenXML Tracked-Change Redlining & Comparison Engine** (Option 1).
+This document provides clean flowcharts for two advanced features: **Autonomous Agentic Research** (Part C Option 2) and **Tracked-Change Redlining in Word** (Part C Option 1).
 
 ---
 
-## 1. Autonomous Agentic Research Loop (Part C: Option 2)
+## Visual Flowchart
 
-Unlike single-turn Q&A, the Agentic Research loop iteratively reasons, chooses tools to inspect specific contract sections, evaluates evidence, and terminates autonomously when sufficient evidence has been gathered.
+![5. Agentic Loop & Redlining Flowchart](./05-agentic-research-and-redlining.svg)
+
+---
+
+## Mermaid Diagram Code
+
+### Flowchart 1: Autonomous Agentic Research Loop
 
 ```mermaid
 flowchart TD
-    User["User Submits Complex Inquiry<br/>'Review cross-liability, IP indemnification, and termination triggers across all schedules'"] --> StartRoute["POST /api/agent/research"]
-    
-    StartRoute --> InitAgent["Initialize Agent State<br/>round = 1, maxRounds = 5, history = []"]
-    
-    subgraph ReActLoop["Autonomous ReAct Execution Loop (lib/ai/agent.ts)"]
-        InitAgent --> CallLLM["Call Gemini with AGENT_SYSTEM_PROMPT & Tools Schema"]
-        
-        CallLLM --> Decide{"Model Decision"}
-        
-        Decide -->|Tool Call Request| ValidateTool{"Validate Tool Name & Zod Arguments"}
-        
-        ValidateTool -->|Invalid| ToolErr["Record Tool Error & Return to LLM"]
-        ToolErr --> IncrementRound
-        
-        ValidateTool -->|Valid: search_document| ExecSearch["Execute search_document({ query, documentId })"]
-        ValidateTool -->|Valid: get_section| ExecSection["Execute get_section({ sectionTitle, page })"]
-        ValidateTool -->|Valid: list_clauses| ExecList["Execute list_clauses({ documentId })"]
-        
-        ExecSearch & ExecSection & ExecList --> StreamStep["Emit SSE Step to UI: data: {'type':'step', 'tool':'...', 'args':{...}}"]
-        StreamStep --> AppendToolResult["Append Tool Output to Multi-turn History"]
-        AppendToolResult --> IncrementRound["round = round + 1"]
-        
-        IncrementRound --> CheckLimit{"round > MAX_ROUNDS (5)?"}
-        CheckLimit -->|Yes: Circuit Breaker| ForceAnswer["Force Final Synthesis Prompt"]
-        CheckLimit -->|No| CallLLM
-        
-        Decide -->|Final Answer Generated| Complete["Extract Answer JSON & Candidate Citations"]
-    end
+    %% 1. Start
+    A["👤 User Starts Agent Deep Research<br/>e.g., 'Compare liability caps, indemnities, and termination risks'"] --> B["⚙️ POST /api/agent/research"]
+    B --> C["🤖 Agent Initializes ReAct Loop<br/>Sets round = 1 (Max 5 rounds)"]
 
-    ForceAnswer --> Complete
-    Complete --> Verify["Verify Citations via Zero-Trust Pipeline (verifier.ts)"]
-    Verify --> StreamFinal["Emit SSE: data: {'type':'final', 'answer':'...', 'citations':[...]}"]
-    StreamFinal --> UI["ChatPanel Renders Collapsible Tool Steps + Final Grounded Answer"]
+    %% 2. Agent Decision
+    C --> D["🧠 Model Analyzes Progress & Chooses Action"]
+    
+    %% 3. Tool Choice
+    D -->|Needs more information| E{"Select Contract Tool"}
+    E -->|Search Keywords| F["🔍 search_document()<br/>Finds mentions across entire contract"]
+    E -->|Read Clause| G["📖 get_section()<br/>Reads full text of Section 4 or 6"]
+    E -->|Table of Contents| H["📑 list_clauses()<br/>Lists all document headings"]
+
+    %% 4. Tool Execution
+    F & G & H --> I["⚡ Execute Tool & Stream Step to User<br/>Chat shows step: 'Searching document for indemnity...'"]
+    I --> J["➕ Append Findings to Agent Memory"]
+    J --> K{"Reached 5 Rounds or Found Answer?"}
+    
+    K -->|Need more evidence (Rounds < 5)| D
+    K -->|Enough Evidence Gathered| L["📝 Synthesize Final Comprehensive Report"]
+    
+    %% 5. Verification & Display
+    L --> M["🛡️ Verify All Citations<br/>Passes quotes through Zero-Trust Verifier"]
+    M --> N["✅ Render Final Report in Chat<br/>Displays expandable research steps + verified quotes"]
+
+    %% Styling
+    classDef startNode fill:#e0e7ff,stroke:#4338ca,stroke-width:2px,color:#1e1b4b;
+    classDef loopNode fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f;
+    classDef toolNode fill:#f1f5f9,stroke:#475569,stroke-width:2px,color:#0f172a;
+    classDef finishNode fill:#d1fae5,stroke:#059669,stroke-width:2px,color:#064e3b;
+
+    class A,B startNode;
+    class C,D,J,K loopNode;
+    class E,F,G,H,I toolNode;
+    class L,M,N finishNode;
 ```
-
-### Agentic Loop Safety Protections:
-- **Hard Round Limit**: Capped at 5 rounds to prevent runaway costs or infinite API loops.
-- **Strict Schema Validation**: Tool names and arguments are validated via Zod schemas; malformed calls are trapped and fed back as descriptive error strings.
-- **Equal Citation Standard**: The agent's final answer must pass the exact same zero-trust verification pipeline as standard chat messages.
 
 ---
 
-## 2. Tracked-Change Redlining Pipeline (Part C: Option 1)
-
-Traditional AI editors simply generate new text, destroying document layout, fonts, and numbering. ContractAI's redlining pipeline generates **native Microsoft Word OpenXML tracked changes** (`<w:del>` and `<w:ins>`) that lawyers can review using Word's native **Accept / Reject** buttons.
+## Flowchart 2: Tracked-Change Redlining (Word DOCX)
 
 ```mermaid
 flowchart TD
-    User["User Instruction<br/>'Increase termination notice from 30 to 60 days'"] --> ProposalAPI["POST /api/redline"]
+    %% 1. User Instruction
+    A["👤 User Enters Redline Request<br/>e.g., 'Increase termination notice from 30 to 60 days'"] --> B["⚙️ Propose Endpoint (POST /api/redline)"]
+
+    %% 2. Surgical Identification
+    B --> C["🔍 AI Locates Targeted Clause<br/>Finds exact text: 'thirty-day (30-day)'"]
+    C --> D["✏️ Proposes Exact Replacement<br/>Replacement text: 'sixty-day (60-day)'"]
+    D --> E["🛡️ Verifies Target Exists in Document<br/>Ensures surrounding text remains 100% untouched"]
+
+    %% 3. In-Browser Preview
+    E --> F["🖥️ Displays Visual Diff Preview in Browser<br/>~~thirty-day (30-day)~~ in RED<br/><u>sixty-day (60-day)</u> in GREEN"]
     
-    subgraph Step1["Step 1: Surgical Proposal Engine (lib/redline/propose.ts)"]
-        ProposalAPI --> PromptLLM["Prompt Gemini / Legal Rule Engine"]
-        PromptLLM --> ExtractFields["Extract:<br/>- targetText: 'thirty-day (30-day)'<br/>- revisedText: 'sixty-day (60-day)'<br/>- contextSentence: Full operative clause<br/>- clauseTitle: Section 4.A Term & Termination"]
-        ExtractFields --> VerifyInDoc{"targetText exists verbatim in contract?"}
-        VerifyInDoc -->|No| FallbackRule["Use Deterministic Regex Legal Fallback"]
-        VerifyInDoc -->|Yes| ReturnProposal["Return JSON Proposal"]
-        FallbackRule --> ReturnProposal
-    end
+    %% 4. User Approval & Download
+    F --> G["📥 User Clicks 'Download Redlined DOCX'"]
+    G --> H["⚙️ Apply Endpoint (POST /api/redline/apply)"]
 
-    ReturnProposal --> UIPreview["RedlinePanel.tsx: In-Browser Diff Preview<br/>Renders ~~thirty-day~~ and <u>sixty-day</u>"]
+    %% 5. Native OpenXML Modification
+    H --> I["📂 Unzips Word Document (JSZip)<br/>Opens word/document.xml"]
+    I --> J["🏷️ Injects Native Tracked Changes Markup:<br/>• &lt;w:del&gt; for deleted words<br/>• &lt;w:ins&gt; for inserted words<br/>• Adds author='ContractAI' and date"]
+    J --> K["📦 Re-packages Clean .docx File"]
 
-    UIPreview -->|User Clicks 'Download Redlined DOCX'| ApplyAPI["POST /api/redline/apply"]
+    %% 6. Review in Word
+    K --> L["💾 Download 'redlined-contract.docx'"]
+    L --> M["📑 Open in Microsoft Word or LibreOffice<br/>Native 'Accept' and 'Reject' buttons work instantly!"]
 
-    subgraph Step2["Step 2: Native WordprocessingML Injection (lib/redline/docxXml.ts)"]
-        ApplyAPI --> Unzip["Unpack .docx Archive via JSZip"]
-        Unzip --> ReadXML["Read word/document.xml"]
-        ReadXML --> SearchRuns["Handle Run Fragmentation (<w:r> & <w:t> tags)"]
-        
-        SearchRuns --> InjectTags["Inject OpenXML Markup:<br/>&lt;w:del w:author='ContractAI' w:date='...'&gt;<br/>  &lt;w:delText&gt;thirty-day (30-day)&lt;/w:delText&gt;<br/>&lt;/w:del&gt;<br/>&lt;w:ins w:author='ContractAI' w:date='...'&gt;<br/>  &lt;w:t&gt;sixty-day (60-day)&lt;/w:t&gt;<br/>&lt;/w:ins&gt;"]
-        
-        InjectTags --> Repack["Repack Zip Archive into Buffer"]
-    end
+    %% Styling
+    classDef inputNode fill:#e0e7ff,stroke:#4338ca,stroke-width:2px,color:#1e1b4b;
+    classDef parseNode fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#78350f;
+    classDef previewNode fill:#f1f5f9,stroke:#475569,stroke-width:2px,color:#0f172a;
+    classDef docxNode fill:#d1fae5,stroke:#059669,stroke-width:2px,color:#064e3b;
 
-    Repack --> Download["Deliver Downloadable DOCX File<br/>(attachment: redlined-SampleContract.docx)"]
-    Download --> WordApp["Lawyer Opens File in Microsoft Word or LibreOffice<br/>Full formatting preserved + Native Accept/Reject UI enabled"]
+    class A,B inputNode;
+    class C,D,E parseNode;
+    class F,G previewNode;
+    class H,I,J,K,L,M docxNode;
 ```
 
 ---
 
-## 3. Contract Comparison & Diff Architecture
+## Step-by-Step Breakdown
 
-When comparing two contracts or versions (e.g., Version 1 vs. Version 2), ContractAI analyzes structural clause changes and performs word-level token diffing:
+### Agentic Research Loop
+1. **Multi-Step Goal**: The user asks a high-level question covering multiple contract areas.
+2. **Autonomous Tool Selection**: The AI decides whether to search keywords, inspect a specific section, or read the clause index.
+3. **5-Round Safety Cap**: Hard loop limit guarantees the agent will never loop endlessly or overspend tokens.
+4. **Final Grounded Report**: Synthesizes the collected evidence and verifies all citations before displaying the result.
 
-```mermaid
-graph TD
-    DocA["Contract Version 1 (Baseline)"] & DocB["Contract Version 2 (Revised)"] --> Comparator["Contract Comparator<br/>(lib/comparison/compare.ts)"]
-    
-    subgraph DiffAnalysis["Structural & Word-Level Analysis"]
-        Comparator --> ClauseAlign["Align Clauses by Heading / Semantic Topic"]
-        ClauseAlign --> WordDiff["Word-Level Token Diffing (lib/comparison/diff.ts)"]
-        WordDiff --> Classify["Classify Status:<br/>• Modified<br/>• Added<br/>• Deleted<br/>• Unchanged"]
-        Classify --> RiskScore["Assess Legal Risk & Favored Party (Customer vs. Vendor)"]
-    end
-
-    RiskScore --> CompReport["Generate Comparison Report & Summary Cards"]
-    
-    CompReport --> DualPaneUI["ContractComparison.tsx (Side-by-Side Synchronized View)"]
-    
-    DualPaneUI --> JumpAction["User Clicks 'Jump to change'"]
-    JumpAction --> ScrollSync["scrollPaneToElement(): Scroll Panes Independently"]
-    ScrollSync --> HighlightEffect["Apply 'citation-highlight-active' Glowing Pulse Animation"]
-```
-
----
-
-## 4. Source Code Cross-References
-
-- **Autonomous Agent Loop**: [lib/ai/agent.ts](file:///Users/mahir/Downloads/contract-ai/lib/ai/agent.ts)
-- **Agent Tools Implementation**: [lib/ai/tools.ts](file:///Users/mahir/Downloads/contract-ai/lib/ai/tools.ts)
-- **Agent Research API Route**: [app/api/agent/research/route.ts](file:///Users/mahir/Downloads/contract-ai/app/api/agent/research/route.ts)
-- **Redline Propose Route**: [app/api/redline/route.ts](file:///Users/mahir/Downloads/contract-ai/app/api/redline/route.ts)
-- **Redline Apply Route**: [app/api/redline/apply/route.ts](file:///Users/mahir/Downloads/contract-ai/app/api/redline/apply/route.ts)
-- **OpenXML DOCX Engine**: [lib/redline/docxXml.ts](file:///Users/mahir/Downloads/contract-ai/lib/redline/docxXml.ts)
-- **Contract Comparison Engine**: [lib/comparison/compare.ts](file:///Users/mahir/Downloads/contract-ai/lib/comparison/compare.ts)
+### Word Tracked-Change Redlining
+1. **Plain-English Edit**: Request edits in everyday language without needing legal formatting.
+2. **Surgical Replacement**: The engine changes only the exact target words without corrupting formatting, headers, or tables.
+3. **In-Browser Review**: Review struck-through red deletions and underlined green additions in context.
+4. **Real Word `.docx` File**: Downloads a file with real Microsoft Word tracked changes enabled so lawyers can review, accept, or reject the edit.
